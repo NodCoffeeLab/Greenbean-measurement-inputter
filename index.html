@@ -1,0 +1,1153 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>생두 물리 측정 결과 입력기</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .active-chip { background-color: #059669 !important; color: white !important; border-color: #059669 !important; }
+    .accordion-content { transition: max-height 0.3s ease-out; overflow: hidden; }
+    .accordion-content.closed { max-height: 0 !important; padding-top: 0 !important; padding-bottom: 0 !important; }
+    input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+    input[type=number] { -moz-appearance: textfield; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen pb-24 font-sans text-gray-800">
+
+  <div class="max-w-md mx-auto px-4 pt-4">
+
+    <header class="mb-4 flex justify-between items-center bg-white p-3 rounded-xl border border-gray-200 shadow-sm">
+      <div>
+        <h1 class="text-base font-bold text-gray-900">생두 물리 측정 결과 입력기</h1>
+        <p class="text-[10px] text-gray-400 font-mono">Q.C Data Entry System</p>
+      </div>
+      <div id="autosave-badge" class="text-[10px] bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded-full font-bold">
+        💾 로컬 버퍼 활성
+      </div>
+    </header>
+
+    <div class="mb-4 bg-emerald-50 border border-emerald-200 p-3 rounded-xl space-y-2 text-xs">
+      <div class="flex items-center justify-between gap-2">
+        <div class="flex-1">
+          <label class="block font-bold text-emerald-800 mb-1">📁 진행 중인 임시저장 불러오기</label>
+          <select id="draftSelect" onchange="loadSelectedDraft(this.value)" class="w-full bg-white border border-emerald-300 rounded-lg p-1.5 focus:outline-none">
+            <option value="">-- 새로 작성하기 --</option>
+          </select>
+        </div>
+        <button type="button" onclick="loadDraftList()" class="bg-emerald-600 text-white font-bold px-3 py-2 rounded-lg shadow-sm self-end">🔄 Sync</button>
+      </div>
+      <button type="button" onclick="openBeanLoadModal()" class="w-full py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded-lg shadow-sm">
+        🔍 기존 생두 정보 불러오기 (전체 / 농장 / 지역)
+      </button>
+    </div>
+
+    <form id="measureForm" class="space-y-3" onsubmit="return false;">
+      <input type="hidden" id="currentRowId" value="">
+
+      <!-- Group 1: 기본 정보 -->
+      <div class="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
+        <button type="button" class="w-full px-4 py-2.5 bg-gray-50 flex justify-between font-bold text-xs border-b" onclick="toggleAcc(this)">
+          <span>1. 기본 정보</span> <span class="arrow text-gray-400">▲</span>
+        </button>
+        <div class="accordion-content p-3 space-y-2 text-xs">
+          <div>
+            <label class="block font-semibold mb-0.5">커피 이름 *</label>
+            <input type="text" id="coffeeName" required class="w-full p-2 border rounded-lg focus:ring-2 focus:ring-emerald-400 outline-none">
+          </div>
+          <div class="grid grid-cols-3 gap-2">
+            <div>
+              <label class="block font-semibold mb-0.5">측정일자</label>
+              <input type="date" id="measureDate" onchange="extractYearMonth()" class="w-full p-1.5 border rounded-lg">
+            </div>
+            <div>
+              <label class="block font-semibold mb-0.5">측정연도</label>
+              <input type="number" id="measureYear" class="w-full p-1.5 border rounded-lg bg-gray-50">
+            </div>
+            <div>
+              <label class="block font-semibold mb-0.5">측정월</label>
+              <input type="number" id="measureMonth" class="w-full p-1.5 border rounded-lg bg-gray-50">
+            </div>
+          </div>
+          <div class="grid grid-cols-3 gap-2">
+            <div>
+              <label class="block font-semibold mb-0.5">수확연도</label>
+              <input type="text" id="harvestYear" placeholder="2024/2025" class="w-full p-1.5 border rounded-lg">
+            </div>
+            <div>
+              <label class="block font-semibold mb-0.5">측정목적</label>
+              <input type="text" id="measurePurpose" placeholder="QC / 입고검사" class="w-full p-1.5 border rounded-lg">
+            </div>
+            <div>
+              <label class="block font-semibold mb-0.5">공급사</label>
+              <select id="supplier" onchange="checkCustomOption(this)" class="w-full p-1.5 border rounded-lg bg-white">
+                <option value="">-- 선택 안함 --</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Group 2: 생산 정보 -->
+      <div class="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
+        <button type="button" class="w-full px-4 py-2.5 bg-gray-50 flex justify-between font-bold text-xs border-b" onclick="toggleAcc(this)">
+          <span>2. 생산 정보</span> <span class="arrow text-gray-400">▼</span>
+        </button>
+        <div class="accordion-content closed p-3 space-y-2 text-xs">
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block font-semibold mb-0.5">국가 *</label>
+              <select id="country" onchange="onCountryChange(this)" class="w-full p-1.5 border rounded-lg bg-white">
+                <option value="">-- 선택 안함 --</option>
+              </select>
+            </div>
+            <div>
+              <label class="block font-semibold mb-0.5">농장</label>
+              <select id="farm" onchange="onFarmChange(this)" class="w-full p-1.5 border rounded-lg bg-white">
+                <option value="">-- 선택 안함 --</option>
+              </select>
+            </div>
+          </div>
+          <div>
+            <label class="block font-semibold mb-0.5">농장 비고</label>
+            <input type="text" id="farmNotes" class="w-full p-1.5 border rounded-lg">
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block font-semibold mb-0.5">생산자</label>
+              <select id="producer" onchange="checkCustomOption(this)" class="w-full p-1.5 border rounded-lg bg-white">
+                <option value="">-- 선택 안함 --</option>
+              </select>
+            </div>
+            <div>
+              <label class="block font-semibold mb-0.5">생산자 비고</label>
+              <input type="text" id="producerNotes" class="w-full p-1.5 border rounded-lg">
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block font-semibold mb-0.5">상위 지역</label>
+              <select id="regionUpper" onchange="checkCustomOption(this)" class="w-full p-1.5 border rounded-lg bg-white">
+                <option value="">-- 선택 안함 --</option>
+              </select>
+            </div>
+            <div>
+              <label class="block font-semibold mb-0.5">하위 지역</label>
+              <input type="text" id="regionLower" class="w-full p-1.5 border rounded-lg">
+            </div>
+          </div>
+          <div>
+            <label class="block font-semibold mb-0.5">지역 비고</label>
+            <input type="text" id="regionNotes" class="w-full p-1.5 border rounded-lg">
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block font-semibold mb-0.5">재배고도 최저 (m)</label>
+              <input type="number" id="altMin" class="w-full p-1.5 border rounded-lg">
+            </div>
+            <div>
+              <label class="block font-semibold mb-0.5">재배고도 최고 (m)</label>
+              <input type="number" id="altMax" class="w-full p-1.5 border rounded-lg">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Group 3: 품종 정보 -->
+      <div class="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
+        <button type="button" class="w-full px-4 py-2.5 bg-gray-50 flex justify-between font-bold text-xs border-b" onclick="toggleAcc(this)">
+          <span>3. 품종 정보</span> <span class="arrow text-gray-400">▼</span>
+        </button>
+        <div class="accordion-content closed p-3 space-y-3 text-xs">
+          <div class="flex justify-between items-center bg-gray-100 p-2 rounded-lg">
+            <span class="font-bold text-gray-700">품종 선택 (다중 선택 태그)</span>
+            <div class="flex gap-2">
+              <button type="button" onclick="openAddVarietyModal()" class="px-2 py-1 bg-emerald-700 text-white font-bold rounded text-[11px]">➕ 신규 품종 DB 추가</button>
+              <button type="button" onclick="clearSelectedVarietyChips()" class="text-[10px] text-red-600 font-bold">전체 해제</button>
+            </div>
+          </div>
+
+          <div>
+            <label class="block font-bold text-emerald-800 mb-1">🌿 Arabica 품종</label>
+            <div id="varietyContainerArabica" class="flex flex-wrap gap-1 p-1.5 border rounded bg-gray-50 min-h-[36px]"></div>
+          </div>
+
+          <div>
+            <label class="block font-bold text-amber-800 mb-1">🍂 Robusta 품종</label>
+            <div id="varietyContainerRobusta" class="flex flex-wrap gap-1 p-1.5 border rounded bg-gray-50 min-h-[36px]"></div>
+          </div>
+
+          <div>
+            <label class="block font-bold text-purple-800 mb-1">🍇 Other / Hybrid 품종</label>
+            <div id="varietyContainerOther" class="flex flex-wrap gap-1 p-1.5 border rounded bg-gray-50 min-h-[36px]"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Group 4: 프로세싱 정보 -->
+      <div class="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
+        <button type="button" class="w-full px-4 py-2.5 bg-gray-50 flex justify-between font-bold text-xs border-b" onclick="toggleAcc(this)">
+          <span>4. 프로세싱 정보</span> <span class="arrow text-gray-400">▼</span>
+        </button>
+        <div class="accordion-content closed p-3 space-y-2.5 text-xs">
+          <div>
+            <label class="block font-semibold mb-0.5 text-emerald-800">⚙ 프로세싱 세트 불러오기</label>
+            <select id="processSet" onchange="onProcessSetChange()" class="w-full p-1.5 border border-emerald-300 rounded-lg bg-emerald-50/50">
+              <option value="">-- 저장된 프로세싱 세트 선택 --</option>
+            </select>
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block font-semibold mb-0.5">대분류</label>
+              <select id="processMain" onchange="checkCustomOption(this)" class="w-full p-1.5 border rounded-lg bg-white">
+                <option value="">-- 선택 안함 --</option>
+              </select>
+            </div>
+            <div>
+              <label class="block font-semibold mb-0.5">발효 타입</label>
+              <select id="fermentationType" class="w-full p-1.5 border rounded-lg bg-white">
+                <option value="">-- 선택 안함 --</option>
+                <option value="Aerobic">Aerobic (유산소)</option>
+                <option value="Anaerobic">Anaerobic (무산소)</option>
+                <option value="Complex">Complex (복합 발효)</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <div class="flex justify-between items-center mb-1">
+              <label class="font-semibold">소분류 (클릭 순서대로 배치됨)</label>
+              <button type="button" onclick="clearSelectedSubChips()" class="text-[10px] text-red-600 font-bold">전체 해제</button>
+            </div>
+            <div id="subChipContainer" class="flex flex-wrap gap-1 mb-1.5 max-h-36 overflow-y-auto p-1.5 border rounded bg-gray-50">
+              <span class="text-gray-400 text-[11px] py-1">DB 로딩 중...</span>
+            </div>
+            <div class="flex gap-1">
+              <input type="text" id="customSubInput" placeholder="+ 직접 입력 후 태그 추가" class="flex-1 p-1 border rounded text-[11px]">
+              <button type="button" onclick="addCustomSubChip()" class="px-2.5 py-1 bg-gray-700 text-white rounded text-[11px] font-bold">추가</button>
+            </div>
+          </div>
+
+          <div>
+            <label class="block font-semibold mb-0.5">프로세싱 비고</label>
+            <input type="text" id="processNotes" class="w-full p-1.5 border rounded-lg">
+          </div>
+        </div>
+      </div>
+
+      <!-- 반복 측정 회차 탭 컨트롤러 -->
+      <div class="bg-emerald-900 text-white p-3 rounded-xl space-y-2 shadow-md">
+        <div class="flex justify-between items-center">
+          <span class="font-bold text-xs">🔄 기기 측정 반복 회차 관리</span>
+          <div class="flex gap-1">
+            <button type="button" onclick="addRunTab()" class="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 rounded-lg text-[11px] font-bold">+ 회차 추가</button>
+            <button type="button" onclick="removeRunTab()" class="px-2 py-1 bg-red-600 hover:bg-red-500 rounded-lg text-[11px] font-bold">삭제</button>
+          </div>
+        </div>
+        <div id="runTabsHeader" class="flex gap-1.5 overflow-x-auto pb-1"></div>
+      </div>
+
+      <!-- Group 5~8 기기 측정그룹 -->
+      <div class="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
+        <button type="button" class="w-full px-4 py-2.5 bg-gray-50 flex justify-between font-bold text-xs border-b" onclick="toggleAcc(this)">
+          <span id="label-omix">5. Omix 측정 데이터 (#1차)</span> <span class="arrow text-gray-400">▼</span>
+        </button>
+        <div class="accordion-content closed p-3 space-y-2 text-xs">
+          <div class="grid grid-cols-3 gap-2">
+            <input type="number" step="0.1" id="omixMoisture" placeholder="수분 (%)" class="p-1.5 border rounded-lg">
+            <input type="number" step="1" id="omixDensity" placeholder="밀도 (g/L)" class="p-1.5 border rounded-lg">
+            <input type="number" step="1" id="omixEstDensity" placeholder="추정 밀도" class="p-1.5 border rounded-lg">
+          </div>
+          <div class="grid grid-cols-3 gap-2">
+            <input type="number" step="1" id="omixScreenMin" placeholder="스크린 작은값" class="p-1.5 border rounded-lg">
+            <input type="number" step="1" id="omixScreenMax" placeholder="스크린 큰값" class="p-1.5 border rounded-lg">
+            <input type="number" step="1" id="omixEstVol" placeholder="추정 부피 (mm³)" class="p-1.5 border rounded-lg">
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <input type="number" step="0.001" id="omixAw" placeholder="수분활성도 (aW)" class="p-1.5 border rounded-lg">
+            <input type="number" step="0.1" id="omixBeanTemp" placeholder="빈 온도 (°C)" class="p-1.5 border rounded-lg">
+          </div>
+          <div class="grid grid-cols-4 gap-1.5">
+            <input type="number" step="0.1" id="omixAirTemp" placeholder="공기온도" class="p-1 border rounded-lg text-[11px]">
+            <input type="number" step="1" id="omixHumidity" placeholder="습도(%)" class="p-1 border rounded-lg text-[11px]">
+            <input type="number" step="0.1" id="omixPressure" placeholder="기압(hPa)" class="p-1 border rounded-lg text-[11px]">
+            <input type="number" step="1" id="omixAltitude" placeholder="고도(m)" class="p-1 border rounded-lg text-[11px]">
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
+        <button type="button" class="w-full px-4 py-2.5 bg-gray-50 flex justify-between font-bold text-xs border-b" onclick="toggleAcc(this)">
+          <span id="label-m1">6. CoffMeter M1 측정 데이터 (#1차)</span> <span class="arrow text-gray-400">▼</span>
+        </button>
+        <div class="accordion-content closed p-3 space-y-2 text-xs">
+          <div class="grid grid-cols-3 gap-2">
+            <input type="number" step="0.1" id="m1Moisture" placeholder="수분 (%)" class="p-1.5 border rounded-lg">
+            <input type="number" step="1" id="m1Density" placeholder="밀도 (g/L)" class="p-1.5 border rounded-lg">
+            <input type="number" step="0.1" id="m1AirTemp" placeholder="공기 온도 (°C)" class="p-1.5 border rounded-lg">
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
+        <button type="button" class="w-full px-4 py-2.5 bg-gray-50 flex justify-between font-bold text-xs border-b" onclick="toggleAcc(this)">
+          <span id="label-md500">7. Lighttells MD-500 측정 데이터 (#1차)</span> <span class="arrow text-gray-400">▼</span>
+        </button>
+        <div class="accordion-content closed p-3 space-y-2 text-xs">
+          <div class="grid grid-cols-3 gap-2">
+            <input type="number" step="0.1" id="md500Moisture" placeholder="수분 (%)" class="p-1.5 border rounded-lg">
+            <input type="number" step="1" id="md500Density" placeholder="밀도 (g/L)" class="p-1.5 border rounded-lg">
+            <input type="number" step="0.1" id="md500AirTemp" placeholder="공기 온도 (°C)" class="p-1.5 border rounded-lg">
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
+        <button type="button" class="w-full px-4 py-2.5 bg-gray-50 flex justify-between font-bold text-xs border-b" onclick="toggleAcc(this)">
+          <span id="label-rotronic">8. Rotronic HygroLab 측정 데이터 (#1차)</span> <span class="arrow text-gray-400">▼</span>
+        </button>
+        <div class="accordion-content closed p-3 space-y-2 text-xs">
+          <div class="grid grid-cols-2 gap-2">
+            <input type="number" step="0.001" id="rotronicAw" placeholder="수분활성도 (aW)" class="p-1.5 border rounded-lg">
+            <input type="number" step="0.01" id="rotronicAwTemp" placeholder="aW Temp (°C)" class="p-1.5 border rounded-lg">
+          </div>
+          <div class="grid grid-cols-2 gap-2 bg-gray-50 p-2 rounded-lg border">
+            <div>
+              <label class="block text-[10px] text-gray-500">aW Offset 🔄</label>
+              <input type="number" step="0.001" id="rotronicAwOffset" class="w-full p-1 border rounded bg-white">
+            </div>
+            <div>
+              <label class="block text-[10px] text-gray-500">Offset Temp 🔄</label>
+              <input type="number" step="0.01" id="rotronicTempOffset" class="w-full p-1 border rounded bg-white">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Group 9: 생두 개별 실측 (1~20알) -->
+      <div class="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
+        <button type="button" class="w-full px-4 py-2.5 bg-emerald-100 text-emerald-900 flex justify-between font-bold text-xs border-b" onclick="toggleAcc(this)">
+          <span>9. 생두 개별 실측 (1~20알 치수/경도)</span> <span class="arrow text-gray-400">▲</span>
+        </button>
+        <div class="accordion-content p-3 space-y-2 text-xs">
+          <div class="bg-emerald-50 p-2.5 rounded-lg border border-emerald-200 grid grid-cols-2 gap-x-2 gap-y-1 text-[11px]">
+            <div>평균 부피: <span id="stat-vol-avg" class="font-bold text-emerald-800">0.0</span> mm³</div>
+            <div>평균 표면적: <span id="stat-area-avg" class="font-bold text-emerald-800">0.0</span> mm²</div>
+            <div>평균 경도: <span id="stat-hard-avg" class="font-bold text-emerald-800">0.0</span></div>
+            <div>샘플 수: <span id="stat-count" class="font-bold text-emerald-800">0</span> / 20 알</div>
+          </div>
+          <div id="bean-grid" class="space-y-1.5 max-h-96 overflow-y-auto pr-1"></div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-3 pt-3">
+        <button type="button" onclick="submitData('Draft')" class="w-full py-3.5 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl shadow-md text-xs active:scale-95 transition-all">
+          💾 임시 저장
+        </button>
+        <button type="button" onclick="submitData('Completed')" class="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-md text-xs active:scale-95 transition-all">
+          🚀 전체 회차 일괄 제출
+        </button>
+      </div>
+
+    </form>
+  </div>
+
+  <!-- 신규 품종 DB 등록 모달 -->
+  <div id="varietyModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-xl max-w-sm w-full p-4 space-y-3 text-xs">
+      <div class="flex justify-between items-center border-b pb-2">
+        <h3 class="font-bold text-sm text-gray-800">➕ 신규 품종 DB 등록</h3>
+        <button type="button" onclick="closeAddVarietyModal()" class="text-gray-400 font-bold hover:text-gray-600">✕</button>
+      </div>
+      <div class="space-y-2">
+        <div>
+          <label class="block font-bold mb-0.5">품종명 *</label>
+          <input type="text" id="newVarName" placeholder="예: Geisha" class="w-full p-2 border rounded-lg">
+        </div>
+        <div>
+          <label class="block font-bold mb-0.5">종 *</label>
+          <select id="newVarSpecies" class="w-full p-2 border rounded-lg bg-white">
+            <option value="Arabica">Arabica</option>
+            <option value="Robusta">Robusta</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+        <div>
+          <label class="block font-bold mb-0.5">품종 그룹 *</label>
+          <input type="text" id="newVarGroup" placeholder="예: Ethiopia Hybrid" class="w-full p-2 border rounded-lg">
+        </div>
+        <div>
+          <label class="block font-bold mb-0.5">품종 비고 (선택)</label>
+          <input type="text" id="newVarNotes" placeholder="설명 및 특성" class="w-full p-2 border rounded-lg">
+        </div>
+      </div>
+      <div class="flex gap-2 pt-2">
+        <button type="button" onclick="closeAddVarietyModal()" class="w-1/2 py-2 bg-gray-200 text-gray-700 font-bold rounded-lg">취소</button>
+        <button type="button" onclick="saveNewVarietyToDB()" class="w-1/2 py-2 bg-emerald-600 text-white font-bold rounded-lg">DB 저장</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 기존 생두 정보 불러오기 모달 -->
+  <div id="beanModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-xl max-w-lg w-full p-4 space-y-3 text-xs">
+      <div class="flex justify-between items-center border-b pb-2">
+        <h3 class="font-bold text-sm text-gray-800">🔍 기존 생두 정보 불러오기</h3>
+        <button type="button" onclick="closeBeanModal()" class="text-gray-400 font-bold hover:text-gray-600">✕</button>
+      </div>
+      <div class="flex items-center gap-3 bg-gray-50 p-2 rounded-lg border">
+        <span class="font-bold text-gray-700">불러올 범위:</span>
+        <label class="flex items-center gap-1 cursor-pointer"><input type="radio" name="beanScope" value="all" checked onchange="filterBeanModalList()" class="text-emerald-600"> 전체</label>
+        <label class="flex items-center gap-1 cursor-pointer"><input type="radio" name="beanScope" value="farm" onchange="filterBeanModalList()" class="text-emerald-600"> 농장</label>
+        <label class="flex items-center gap-1 cursor-pointer"><input type="radio" name="beanScope" value="region" onchange="filterBeanModalList()" class="text-emerald-600"> 지역</label>
+      </div>
+      <input type="text" id="beanSearchInput" oninput="filterBeanModalList()" placeholder="검색어 입력..." class="w-full p-2 border rounded-lg">
+      <div id="beanModalList" class="max-h-60 overflow-y-auto space-y-1.5 border p-2 rounded-lg bg-gray-50"></div>
+    </div>
+  </div>
+
+  <script>
+    const GOOGLE_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxpBtsdrY2Jpyddz56WpQNVWiSTRmbVp41fAXFjxktEjOOQIanum-XPCucJdwbGaiE/exec";
+    let activeDraftsList = [];
+    let cachedBeansList = [];
+    let dbCache = {};
+
+    let runsData = [ {} ];
+    let currentRunIdx = 0;
+    let selectedSubQueue = [];
+    let selectedVarietyQueue = [];
+
+    const deviceFieldIds = [
+      'omixMoisture', 'omixDensity', 'omixEstDensity', 'omixScreenMin', 'omixScreenMax', 'omixEstVol', 'omixAw', 'omixBeanTemp', 'omixAirTemp', 'omixHumidity', 'omixPressure', 'omixAltitude',
+      'm1Moisture', 'm1Density', 'm1AirTemp',
+      'md500Moisture', 'md500Density', 'md500AirTemp',
+      'rotronicAw', 'rotronicAwTemp', 'rotronicAwOffset', 'rotronicTempOffset'
+    ];
+
+    window.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('measureDate').value = new Date().toISOString().substring(0, 10);
+      extractYearMonth();
+      build20BeanGrid();
+      renderRunTabs();
+      if (!GOOGLE_WEB_APP_URL.includes("여기에_")) {
+        loadDraftList();
+        loadDBLists();
+      }
+    });
+
+    function extractYearMonth() {
+      const d = document.getElementById('measureDate').value;
+      if (d) {
+        const parts = d.split('-');
+        if (parts.length >= 2) {
+          document.getElementById('measureYear').value = parseInt(parts[0], 10);
+          document.getElementById('measureMonth').value = parseInt(parts[1], 10);
+        }
+      }
+    }
+
+    function loadDBLists() {
+      fetch(`${GOOGLE_WEB_APP_URL}?action=getDB`)
+        .then(res => res.json())
+        .then(data => {
+          dbCache = data || {};
+          fillSelectOptions('country', data.country, 0);
+          fillSelectOptions('supplier', data.supplier, 0);
+          fillSelectOptions('farm', data.farm, 1);
+          fillSelectOptions('regionUpper', data.region, 1);
+          fillSelectOptions('processSet', data.processing, 0);
+          fillSelectOptions('processMain', data.processing, 1);
+
+          renderGroupedVarietyChips(data.variety);
+          renderProcessSubChips(data.processing);
+        }).catch(err => console.error(err));
+    }
+
+    function fillSelectOptions(selectId, arr, colIdx, filterColIdx = -1, filterValue = "") {
+      const sel = document.getElementById(selectId);
+      if (!sel) return;
+      sel.innerHTML = '<option value="">-- 선택 안함 --</option>';
+      if (!arr || !Array.isArray(arr)) {
+        sel.innerHTML += `<option value="__custom__">✏ [+ 직접 입력]</option>`;
+        return;
+      }
+      const set = new Set();
+      for (let i = 1; i < arr.length; i++) {
+        if (filterColIdx > -1 && filterValue) {
+          const matchVal = String(arr[i][filterColIdx] || '').trim().toLowerCase();
+          if (matchVal !== filterValue.toLowerCase()) continue;
+        }
+        const val = String(arr[i][colIdx] || '').trim();
+        if (val && !set.has(val)) {
+          set.add(val);
+          sel.innerHTML += `<option value="${val}">${val}</option>`;
+        }
+      }
+      sel.innerHTML += `<option value="__custom__">✏ [+ 직접 입력]</option>`;
+    }
+
+    function onCountryChange(sel) {
+      checkCustomOption(sel);
+      const cVal = sel.value.trim();
+      fillSelectOptions('farm', dbCache.farm, 1, 0, cVal);
+      fillSelectOptions('regionUpper', dbCache.region, 1, 0, cVal);
+      onFarmChange(document.getElementById('farm'));
+    }
+
+    function onFarmChange(sel) {
+      checkCustomOption(sel);
+      const fVal = sel.value.trim();
+      if (!fVal) {
+        const prodSel = document.getElementById('producer');
+        prodSel.innerHTML = '<option value="">-- 선택 안함 --</option><option value="__custom__">✏ [+ 직접 입력]</option>';
+      } else {
+        fillSelectOptions('producer', dbCache.farm, 3, 1, fVal);
+      }
+    }
+
+    function checkCustomOption(sel) {
+      if (sel.value === '__custom__') {
+        const val = prompt("새로운 항목명을 입력해 주세요:");
+        if (val && val.trim()) {
+          const trimmed = val.trim();
+          const opt = document.createElement('option');
+          opt.value = trimmed;
+          opt.textContent = trimmed;
+          sel.insertBefore(opt, sel.lastElementChild);
+          sel.value = trimmed;
+        } else {
+          sel.value = "";
+        }
+      }
+    }
+
+    function renderGroupedVarietyChips(arr) {
+      const cArabica = document.getElementById('varietyContainerArabica');
+      const cRobusta = document.getElementById('varietyContainerRobusta');
+      const cOther = document.getElementById('varietyContainerOther');
+      
+      cArabica.innerHTML = ''; cRobusta.innerHTML = ''; cOther.innerHTML = '';
+      if (!arr || !Array.isArray(arr)) return;
+
+      for (let i = 1; i < arr.length; i++) {
+        const row = arr[i];
+        if (!row || !Array.isArray(row)) continue;
+        const name = String(row[0] || '').trim();
+        const species = String(row[1] || '').trim().toLowerCase();
+        if (!name) continue;
+
+        let targetContainer = cOther;
+        if (species === 'arabica') targetContainer = cArabica;
+        else if (species === 'robusta') targetContainer = cRobusta;
+
+        createVarietyChipElement(name, targetContainer);
+      }
+    }
+
+    function createVarietyChipElement(val, container) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'variety-chip px-2 py-1 border rounded-lg text-[11px] bg-gray-100 text-gray-700 font-medium transition-all';
+      btn.dataset.val = val;
+      btn.textContent = val;
+      btn.onclick = function() { toggleVarietyChipQueue(this); };
+      container.appendChild(btn);
+    }
+
+    function toggleVarietyChipQueue(btn) {
+      const val = btn.dataset.val;
+      const idx = selectedVarietyQueue.indexOf(val);
+      if (idx > -1) {
+        selectedVarietyQueue.splice(idx, 1);
+        btn.classList.remove('active-chip');
+      } else {
+        selectedVarietyQueue.push(val);
+        btn.classList.add('active-chip');
+      }
+    }
+
+    function clearSelectedVarietyChips() {
+      selectedVarietyQueue = [];
+      document.querySelectorAll('.variety-chip').forEach(b => b.classList.remove('active-chip'));
+    }
+
+    function getSelectedVariety() {
+      return selectedVarietyQueue.join(', ');
+    }
+
+    function setSelectedVariety(str) {
+      clearSelectedVarietyChips();
+      if (!str) return;
+      const list = String(str).split(',').map(s => s.trim());
+      list.forEach(val => {
+        if (!val) return;
+        let btn = document.querySelector(`.variety-chip[data-val="${val}"]`);
+        if (!btn) {
+          createVarietyChipElement(val, document.getElementById('varietyContainerOther'));
+          btn = document.getElementById('varietyContainerOther').lastElementChild;
+        }
+        if (btn && !selectedVarietyQueue.includes(val)) {
+          selectedVarietyQueue.push(val);
+          btn.classList.add('active-chip');
+        }
+      });
+    }
+
+    function openAddVarietyModal() {
+      document.getElementById('varietyModal').classList.remove('hidden');
+    }
+    function closeAddVarietyModal() {
+      document.getElementById('varietyModal').classList.add('hidden');
+    }
+
+    function saveNewVarietyToDB() {
+      const name = document.getElementById('newVarName').value.trim();
+      const species = document.getElementById('newVarSpecies').value;
+      const group = document.getElementById('newVarGroup').value.trim();
+      const notes = document.getElementById('newVarNotes').value.trim();
+
+      if (!name) {
+        alert("⚠ 품종명을 입력해 주세요.");
+        return;
+      }
+
+      fetch(GOOGLE_WEB_APP_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({
+          action: "addVariety",
+          varietyData: { name: name, species: species, group: group, notes: notes }
+        })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.result === "success") {
+          alert("🎉 신규 품종이 성공적으로 DB에 저장되었습니다.");
+          closeAddVarietyModal();
+          loadDBLists();
+        }
+      });
+    }
+
+    function renderProcessSubChips(arr) {
+      const container = document.getElementById('subChipContainer');
+      if (!container || !arr || !Array.isArray(arr)) return;
+      container.innerHTML = '';
+      const set = new Set();
+      
+      for (let i = 1; i < arr.length; i++) {
+        const subVal = String(arr[i][0] || '').trim();
+        if (subVal && !set.has(subVal)) {
+          set.add(subVal);
+          createChipElement(subVal, container);
+        }
+      }
+
+      const defaultSubs = ["Anaerobic", "Mosto", "CM", "Carbonic Maceration", "Co-Fermentation", "Infused", "Decaf", "Thermal Shock", "Nitrogen", "Black Honey", "Red Honey", "Slow Dried", "Bioreactor"];
+      defaultSubs.forEach(s => {
+        if (!set.has(s)) {
+          set.add(s);
+          createChipElement(s, container);
+        }
+      });
+    }
+
+    function createChipElement(val, container) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'sub-chip px-2 py-1 border rounded-lg text-[11px] bg-gray-100 text-gray-700 font-medium transition-all';
+      btn.dataset.val = val;
+      btn.textContent = val;
+      btn.onclick = function() { toggleSubChipQueue(this); };
+      container.appendChild(btn);
+    }
+
+    function toggleSubChipQueue(btn) {
+      const val = btn.dataset.val;
+      const idx = selectedSubQueue.indexOf(val);
+      if (idx > -1) {
+        selectedSubQueue.splice(idx, 1);
+        btn.classList.remove('active-chip');
+      } else {
+        selectedSubQueue.push(val);
+        btn.classList.add('active-chip');
+      }
+    }
+
+    function addCustomSubChip() {
+      const val = document.getElementById('customSubInput').value.trim();
+      if (!val) return;
+      const container = document.getElementById('subChipContainer');
+      createChipElement(val, container);
+      const newBtn = container.lastElementChild;
+      toggleSubChipQueue(newBtn);
+      document.getElementById('customSubInput').value = '';
+    }
+
+    function clearSelectedSubChips() {
+      selectedSubQueue = [];
+      document.querySelectorAll('.sub-chip').forEach(b => b.classList.remove('active-chip'));
+    }
+
+    function getSelectedProcessSub() {
+      return selectedSubQueue.join(', ');
+    }
+
+    function setSelectedProcessSub(str) {
+      clearSelectedSubChips();
+      if (!str) return;
+      const list = String(str).split(',').map(s => s.trim());
+      list.forEach(val => {
+        if (!val) return;
+        let btn = document.querySelector(`.sub-chip[data-val="${val}"]`);
+        if (!btn) {
+          const container = document.getElementById('subChipContainer');
+          createChipElement(val, container);
+          btn = container.lastElementChild;
+        }
+        if (btn && !selectedSubQueue.includes(val)) {
+          selectedSubQueue.push(val);
+          btn.classList.add('active-chip');
+        }
+      });
+    }
+
+    function setSelectValue(id, val) {
+      const sel = document.getElementById(id);
+      if (!sel) return;
+      let match = false;
+      for (let i = 0; i < sel.options.length; i++) {
+        if (sel.options[i].value.toLowerCase() === String(val).toLowerCase()) {
+          sel.selectedIndex = i;
+          match = true;
+          break;
+        }
+      }
+      if (!match && val) {
+        const opt = document.createElement('option');
+        opt.value = val;
+        opt.textContent = val;
+        sel.insertBefore(opt, sel.lastElementChild);
+        sel.value = val;
+      }
+    }
+
+    function onProcessSetChange() {
+      const sel = document.getElementById('processSet');
+      const selected = sel.value.trim();
+      if (!selected || !dbCache.processing) return;
+
+      for (let i = 1; i < dbCache.processing.length; i++) {
+        const row = dbCache.processing[i];
+        if (String(row[0] || '').trim().toLowerCase() === selected.toLowerCase()) {
+          setSelectValue('processMain', row[1] || '');
+          setSelectedProcessSub(row[2] || '');
+          document.getElementById('fermentationType').value = row[3] || '';
+          document.getElementById('processNotes').value = row[4] || '';
+          break;
+        }
+      }
+    }
+
+    function renderRunTabs() {
+      const container = document.getElementById('runTabsHeader');
+      container.innerHTML = '';
+      runsData.forEach((_, idx) => {
+        const isCurrent = idx === currentRunIdx;
+        const activeClass = isCurrent ? 'bg-emerald-400 text-emerald-950 font-bold border-white' : 'bg-emerald-800 text-emerald-200 border-emerald-700';
+        container.innerHTML += `
+          <button type="button" onclick="switchRunTab(${idx})" class="px-3 py-1 rounded-lg text-xs border ${activeClass}">
+            #${idx + 1}차 측정
+          </button>
+        `;
+      });
+      updateRunLabels();
+    }
+
+    function updateRunLabels() {
+      const labelText = `(#${currentRunIdx + 1}차)`;
+      document.getElementById('label-omix').textContent = `5. Omix 측정 데이터 ${labelText}`;
+      document.getElementById('label-m1').textContent = `6. CoffMeter M1 측정 데이터 ${labelText}`;
+      document.getElementById('label-md500').textContent = `7. Lighttells MD-500 측정 데이터 ${labelText}`;
+      document.getElementById('label-rotronic').textContent = `8. Rotronic HygroLab 측정 데이터 ${labelText}`;
+    }
+
+    function saveCurrentRunInputs() {
+      const currentObj = {};
+      deviceFieldIds.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) currentObj[id] = el.value;
+      });
+      runsData[currentRunIdx] = currentObj;
+    }
+
+    function loadRunInputs(idx) {
+      const dataObj = runsData[idx] || {};
+      deviceFieldIds.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = dataObj[id] !== undefined ? dataObj[id] : '';
+      });
+    }
+
+    function addRunTab() {
+      saveCurrentRunInputs();
+      runsData.push({});
+      currentRunIdx = runsData.length - 1;
+      renderRunTabs();
+      loadRunInputs(currentRunIdx);
+    }
+
+    function removeRunTab() {
+      if (runsData.length <= 1) {
+        alert("최소 1개 회차는 유지되어야 합니다.");
+        return;
+      }
+      runsData.splice(currentRunIdx, 1);
+      currentRunIdx = Math.max(0, currentRunIdx - 1);
+      renderRunTabs();
+      loadRunInputs(currentRunIdx);
+    }
+
+    function switchRunTab(targetIdx) {
+      saveCurrentRunInputs();
+      currentRunIdx = targetIdx;
+      renderRunTabs();
+      loadRunInputs(targetIdx);
+    }
+
+    function build20BeanGrid() {
+      const container = document.getElementById('bean-grid');
+      container.innerHTML = '';
+      for (let i = 1; i <= 20; i++) {
+        container.innerHTML += `
+          <div class="flex items-center gap-1.5 bg-gray-50 p-1.5 rounded-lg border border-gray-200">
+            <span class="w-6 font-bold text-gray-500 text-[11px]">#${i}</span>
+            <input type="number" step="0.1" id="b_${i}_l" placeholder="길이" oninput="calcBeanMetrics();" class="w-1/4 p-1 border rounded text-[11px] bg-white">
+            <input type="number" step="0.1" id="b_${i}_w" placeholder="폭" oninput="calcBeanMetrics();" class="w-1/4 p-1 border rounded text-[11px] bg-white">
+            <input type="number" step="0.1" id="b_${i}_t" placeholder="두께" oninput="calcBeanMetrics();" class="w-1/4 p-1 border rounded text-[11px] bg-white">
+            <input type="number" step="0.1" id="b_${i}_h" placeholder="경도" onblur="formatHardness(this)" oninput="calcBeanMetrics();" class="w-1/4 p-1 border rounded text-[11px] bg-white">
+          </div>
+        `;
+      }
+    }
+
+    function formatHardness(input) {
+      let val = input.value.trim();
+      if (!val || val.includes('.')) return;
+      let num = parseInt(val, 10);
+      if (isNaN(num)) return;
+      if (val.length === 3) input.value = (num / 10).toFixed(1);
+      else if (val.length === 2) input.value = num.toFixed(1);
+      calcBeanMetrics();
+    }
+
+    function calcBeanMetrics() {
+      const vols = [], areas = [], hardings = [];
+      const p = 1.6075;
+
+      for (let i = 1; i <= 20; i++) {
+        const l = parseFloat(document.getElementById(`b_${i}_l`).value) || 0;
+        const w = parseFloat(document.getElementById(`b_${i}_w`).value) || 0;
+        const t = parseFloat(document.getElementById(`b_${i}_t`).value) || 0;
+        const h = parseFloat(document.getElementById(`b_${i}_h`).value) || 0;
+
+        if (l > 0 && w > 0 && t > 0) {
+          const a = l / 2, b = w / 2, c = t / 2;
+          const vol = (4 / 3) * Math.PI * a * b * c;
+          const area = 4 * Math.PI * Math.pow(((Math.pow(a*b, p) + Math.pow(a*c, p) + Math.pow(b*c, p)) / 3), 1/p);
+          vols.push(vol);
+          areas.push(area);
+        }
+        if (h > 0) hardings.push(h);
+      }
+
+      const count = vols.length;
+      document.getElementById('stat-count').textContent = count;
+
+      if (count > 0) {
+        const volAvg = vols.reduce((a, b) => a + b, 0) / count;
+        const areaAvg = areas.reduce((a, b) => a + b, 0) / count;
+        document.getElementById('stat-vol-avg').textContent = volAvg.toFixed(1);
+        document.getElementById('stat-area-avg').textContent = areaAvg.toFixed(1);
+      } else {
+        document.getElementById('stat-vol-avg').textContent = "0.0";
+        document.getElementById('stat-area-avg').textContent = "0.0";
+      }
+
+      if (hardings.length > 0) {
+        const hardAvg = hardings.reduce((a, b) => a + b, 0) / hardings.length;
+        document.getElementById('stat-hard-avg').textContent = hardAvg.toFixed(1);
+      } else {
+        document.getElementById('stat-hard-avg').textContent = "0.0";
+      }
+    }
+
+    function toggleAcc(btn) {
+      const content = btn.nextElementSibling;
+      const arrow = btn.querySelector('.arrow');
+      content.classList.toggle('closed');
+      arrow.textContent = content.classList.contains('closed') ? '▼' : '▲';
+    }
+
+    function submitData(statusMode) {
+      if (GOOGLE_WEB_APP_URL.includes("여기에_")) {
+        alert("🛑 GOOGLE_WEB_APP_URL을 등록해 주세요.");
+        return;
+      }
+      const coffeeName = document.getElementById('coffeeName').value.trim();
+      if (!coffeeName) {
+        alert("⚠ 커피 이름을 입력해 주세요.");
+        return;
+      }
+
+      saveCurrentRunInputs();
+
+      if (statusMode === 'Completed' && !confirm(`🚀 총 ${runsData.length}개 회차 데이터를 전송하시겠습니까?`)) return;
+
+      const rowId = document.getElementById('currentRowId').value || "ID_" + Date.now();
+      const parseVal = v => {
+        if (v === undefined || v === null) return "";
+        const str = String(v).trim();
+        return str === "" ? "" : parseFloat(str);
+      };
+
+      const commonProfile = {
+        "커피 이름": coffeeName,
+        "측정일자": document.getElementById('measureDate').value,
+        "측정연도": parseVal(document.getElementById('measureYear').value),
+        "측정월": parseVal(document.getElementById('measureMonth').value),
+        "수확연도": document.getElementById('harvestYear').value,
+        "측정목적": document.getElementById('measurePurpose').value,
+        "공급사": document.getElementById('supplier').value,
+        "국가": document.getElementById('country').value,
+        "농장": document.getElementById('farm').value,
+        "농장 비고": document.getElementById('farmNotes').value,
+        "생산자": document.getElementById('producer').value,
+        "생산자 비고": document.getElementById('producerNotes').value,
+        "상위 지역": document.getElementById('regionUpper').value,
+        "하위 지역": document.getElementById('regionLower').value,
+        "지역 비고": document.getElementById('regionNotes').value,
+        "재배고도 범위 최저": parseVal(document.getElementById('altMin').value),
+        "재배고도 범위 최고": parseVal(document.getElementById('altMax').value),
+        "품종": getSelectedVariety(),
+        "종": "",
+        "품종 그룹": "",
+        "품종 비고": "",
+        "프로세싱 대분류": document.getElementById('processMain').value,
+        "프로세싱 소분류": getSelectedProcessSub(),
+        "발효 타입": document.getElementById('fermentationType').value,
+        "프로세싱 비고": document.getElementById('processNotes').value
+      };
+
+      for (let i = 1; i <= 20; i++) {
+        commonProfile[`실측 생두${i} 길이`] = parseVal(document.getElementById(`b_${i}_l`).value);
+        commonProfile[`실측 생두${i} 폭`] = parseVal(document.getElementById(`b_${i}_w`).value);
+        commonProfile[`실측 생두${i} 두께`] = parseVal(document.getElementById(`b_${i}_t`).value);
+        commonProfile[`실측 생두${i} 경도`] = parseVal(document.getElementById(`b_${i}_h`).value);
+      }
+
+      const runsPayload = runsData.map(run => {
+        const fields = { ...commonProfile };
+        fields["Omix 수분"] = parseVal(run['omixMoisture']);
+        fields["Omix 밀도"] = parseVal(run['omixDensity']);
+        fields["Omix 추정 밀도"] = parseVal(run['omixEstDensity']);
+        fields["Omix 스크린 사이즈 작음"] = parseVal(run['omixScreenMin']);
+        fields["Omix 스크린 사이즈 큼"] = parseVal(run['omixScreenMax']);
+        fields["Omix 추정 부피"] = parseVal(run['omixEstVol']);
+        fields["Omix 수분활성도"] = parseVal(run['omixAw']);
+        fields["Omix 빈 온도"] = parseVal(run['omixBeanTemp']);
+        fields["Omix 공기 온도"] = parseVal(run['omixAirTemp']);
+        fields["Omix 습도"] = parseVal(run['omixHumidity']);
+        fields["Omix 기압"] = parseVal(run['omixPressure']);
+        fields["Omix 고도"] = parseVal(run['omixAltitude']);
+
+        fields["M1 수분"] = parseVal(run['m1Moisture']);
+        fields["M1 밀도"] = parseVal(run['m1Density']);
+        fields["M1 공기 온도"] = parseVal(run['m1AirTemp']);
+
+        fields["MD-500 수분"] = parseVal(run['md500Moisture']);
+        fields["MD-500 밀도"] = parseVal(run['md500Density']);
+        fields["MD-500 공기 온도"] = parseVal(run['md500AirTemp']);
+
+        fields["Rotronic 수분활성도"] = parseVal(run['rotronicAw']);
+        fields["Rotronic 수분활성도 온도"] = parseVal(run['rotronicAwTemp']);
+        fields["Rotronic 수분활성도 오프셋"] = parseVal(run['rotronicAwOffset']);
+        fields["Rotronic 오프셋 온도"] = parseVal(run['rotronicTempOffset']);
+
+        return fields;
+      });
+
+      fetch(GOOGLE_WEB_APP_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ formType: "measure", rowId: rowId, status: statusMode, runs: runsPayload })
+      })
+      .then(res => res.text())
+      .then(text => {
+        if (text.includes("Success")) {
+          alert(`🎉 ${runsData.length}개 회차 데이터 전송에 성공했습니다!`);
+          location.reload();
+        } else {
+          alert("❌ 저장 실패 (서버 응답): " + text);
+        }
+      })
+      .catch(err => alert("❌ 전송 중 네트워크 에러가 발생했습니다."));
+    }
+
+    function loadDraftList() {
+      const select = document.getElementById('draftSelect');
+      select.innerHTML = `<option value="">⏳ Syncing...</option>`;
+      fetch(`${GOOGLE_WEB_APP_URL}?action=getDrafts`)
+        .then(res => res.json())
+        .then(data => {
+          activeDraftsList = data.drafts || [];
+          select.innerHTML = `<option value="">-- 새로 작성하기 --</option>`;
+          activeDraftsList.forEach(item => {
+            const name = item.fields["커피 이름"] || "이름 없음";
+            const date = item.fields["측정일자"] || "";
+            select.innerHTML += `<option value="${item.rowId}">${name} (${String(date).substring(0,10)})</option>`;
+          });
+        });
+    }
+
+    function loadSelectedDraft(rowId) {
+      if (!rowId) return;
+      const match = activeDraftsList.find(d => d.rowId == rowId);
+      if (!match) return;
+      const f = match.fields;
+      document.getElementById('currentRowId').value = rowId;
+      document.getElementById('coffeeName').value = f["커피 이름"] || "";
+      document.getElementById('measureDate').value = f["측정일자"] ? String(f["측정일자"]).substring(0, 10) : "";
+      extractYearMonth();
+      document.getElementById('harvestYear').value = f["수확연도"] || "";
+      document.getElementById('measurePurpose').value = f["측정목적"] || "";
+      
+      setSelectValue('supplier', f["공급사"] || "");
+      setSelectValue('country', f["국가"] || "");
+      onCountryChange(document.getElementById('country'));
+
+      setSelectValue('farm', f["농장"] || "");
+      onFarmChange(document.getElementById('farm'));
+
+      document.getElementById('farmNotes').value = f["농장 비고"] || "";
+      setSelectValue('producer', f["생산자"] || "");
+      document.getElementById('producerNotes').value = f["생산자 비고"] || "";
+      setSelectValue('regionUpper', f["상위 지역"] || "");
+      document.getElementById('regionLower').value = f["하위 지역"] || "";
+      document.getElementById('regionNotes').value = f["지역 비고"] || "";
+      document.getElementById('altMin').value = f["재배고도 범위 최저"] || "";
+      document.getElementById('altMax').value = f["재배고도 범위 최고"] || "";
+
+      setSelectedVariety(f["품종"] || "");
+
+      setSelectValue('processMain', f["프로세싱 대분류"] || "");
+      setSelectedProcessSub(f["프로세싱 소분류"] || "");
+      document.getElementById('fermentationType').value = f["발효 타입"] || "";
+      document.getElementById('processNotes').value = f["프로세싱 비고"] || "";
+
+      for (let i = 1; i <= 20; i++) {
+        document.getElementById(`b_${i}_l`).value = f[`실측 생두${i} 길이`] || "";
+        document.getElementById(`b_${i}_w`).value = f[`실측 생두${i} 폭`] || "";
+        document.getElementById(`b_${i}_t`).value = f[`실측 생두${i} 두께`] || "";
+        document.getElementById(`b_${i}_h`).value = f[`실측 생두${i} 경도`] || "";
+      }
+      calcBeanMetrics();
+    }
+
+    function openBeanLoadModal() {
+      document.getElementById('beanModal').classList.remove('hidden');
+      if (cachedBeansList.length === 0) {
+        fetch(`${GOOGLE_WEB_APP_URL}?action=getExistingBeans`)
+          .then(res => res.json())
+          .then(data => {
+            cachedBeansList = data || [];
+            filterBeanModalList();
+          });
+      } else {
+        filterBeanModalList();
+      }
+    }
+
+    function closeBeanModal() {
+      document.getElementById('beanModal').classList.add('hidden');
+    }
+
+    function filterBeanModalList() {
+      const q = document.getElementById('beanSearchInput').value.trim().toLowerCase();
+      const filtered = cachedBeansList.filter(b => {
+        const name = String(b["커피 이름"] || "").toLowerCase();
+        const farm = String(b["농장"] || "").toLowerCase();
+        const country = String(b["국가"] || "").toLowerCase();
+        return name.includes(q) || farm.includes(q) || country.includes(q);
+      });
+      renderBeanModalList(filtered);
+    }
+
+    function renderBeanModalList(list) {
+      const container = document.getElementById('beanModalList');
+      if (!list || list.length === 0) {
+        container.innerHTML = `<div class="text-center py-4 text-gray-400">저장된 레코드가 없습니다.</div>`;
+        return;
+      }
+      const scope = document.querySelector('input[name="beanScope"]:checked').value;
+      container.innerHTML = '';
+
+      list.forEach((b, idx) => {
+        let labelText = "";
+        if (scope === 'all') {
+          labelText = `${b["커피 이름"] || "이름 없음"} (${b["수확연도"] || "수확연도 미입력"})`;
+        } else if (scope === 'farm') {
+          labelText = `${b["국가"] || ""} | ${b["농장"] || "농장 미입력"} | ${b["생산자"] || "생산자 미입력"}`;
+        } else if (scope === 'region') {
+          labelText = `${b["국가"] || ""} | ${b["상위 지역"] || "상위지역 미입력"} | ${b["하위 지역"] || ""}`;
+        }
+
+        container.innerHTML += `
+          <div onclick="selectBeanFromModal(${idx})" class="p-2 bg-white rounded border hover:bg-emerald-50 cursor-pointer flex justify-between items-center">
+            <span class="font-bold text-gray-800">${labelText}</span>
+            <button type="button" class="px-2 py-1 bg-emerald-600 text-white rounded text-[10px] font-bold">선택</button>
+          </div>
+        `;
+      });
+    }
+
+    function selectBeanFromModal(idx) {
+      const b = cachedBeansList[idx];
+      if (!b) return;
+      const scope = document.querySelector('input[name="beanScope"]:checked').value;
+
+      if (scope === 'all' || scope === 'farm' || scope === 'region') {
+        setSelectValue('country', b["국가"] || "");
+        onCountryChange(document.getElementById('country'));
+        setSelectValue('regionUpper', b["상위 지역"] || "");
+        document.getElementById('regionLower').value = b["하위 지역"] || "";
+        document.getElementById('regionNotes').value = b["지역 비고"] || "";
+      }
+
+      if (scope === 'all' || scope === 'farm') {
+        setSelectValue('farm', b["농장"] || "");
+        onFarmChange(document.getElementById('farm'));
+        document.getElementById('farmNotes').value = b["농장 비고"] || "";
+        setSelectValue('producer', b["생산자"] || "");
+        document.getElementById('producerNotes').value = b["생산자 비고"] || "";
+      }
+
+      if (scope === 'all') {
+        document.getElementById('coffeeName').value = b["커피 이름"] || "";
+        document.getElementById('harvestYear').value = b["수확연도"] || "";
+        setSelectValue('supplier', b["공급사"] || "");
+        setSelectedVariety(b["품종"] || "");
+        setSelectValue('processMain', b["프로세싱 대분류"] || "");
+        setSelectedProcessSub(b["프로세싱 소분류"] || "");
+        document.getElementById('fermentationType').value = b["발효 타입"] || "";
+        document.getElementById('processNotes').value = b["프로세싱 비고"] || "";
+        document.getElementById('altMin').value = b["재배고도 범위 최저"] || "";
+        document.getElementById('altMax').value = b["재배고도 범위 최고"] || "";
+      }
+
+      closeBeanModal();
+      alert("✅ 선택한 생두 정보가 자동 입력되었습니다.");
+    }
+  </script>
+</body>
+</html>
