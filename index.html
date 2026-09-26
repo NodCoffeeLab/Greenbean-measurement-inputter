@@ -11,22 +11,25 @@
     .accordion-content.closed { max-height: 0 !important; padding-top: 0 !important; padding-bottom: 0 !important; }
     input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
     input[type=number] { -moz-appearance: textfield; }
+    .search-select-dropdown { max-height: 200px; overflow-y: auto; }
   </style>
 </head>
 <body class="bg-gray-50 min-h-screen pb-24 font-sans text-gray-800">
 
   <div class="max-w-md mx-auto px-4 pt-4">
 
+    <!-- Header -->
     <header class="mb-4 flex justify-between items-center bg-white p-3 rounded-xl border border-gray-200 shadow-sm">
       <div>
         <h1 class="text-base font-bold text-gray-900">생두 물리 측정 결과 입력기</h1>
-        <p class="text-[10px] text-gray-400 font-mono">Q.C Data Entry System</p>
+        <p class="text-[10px] text-gray-400 font-mono">Cafe Nogales Q.C System</p>
       </div>
       <div id="autosave-badge" class="text-[10px] bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded-full font-bold">
         💾 로컬 버퍼 활성
       </div>
     </header>
 
+    <!-- Top Sync & Load Panel -->
     <div class="mb-4 bg-emerald-50 border border-emerald-200 p-3 rounded-xl space-y-2 text-xs">
       <div class="flex items-center justify-between gap-2">
         <div class="flex-1">
@@ -43,7 +46,7 @@
     </div>
 
     <form id="measureForm" class="space-y-3" onsubmit="return false;">
-      <input type="hidden" id="currentRowId" value="">
+      <input type="hidden" id="currentSetId" value="">
 
       <!-- Group 1: 기본 정보 -->
       <div class="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
@@ -80,9 +83,11 @@
             </div>
             <div>
               <label class="block font-semibold mb-0.5">공급사</label>
-              <select id="supplier" onchange="checkCustomOption(this)" class="w-full p-1.5 border rounded-lg bg-white">
-                <option value="">-- 선택 안함 --</option>
-              </select>
+              <div class="relative">
+                <input type="text" id="supplier_search" placeholder="검색 및 선택..." onclick="toggleSearchSelect('supplier_dropdown')" oninput="filterSearchSelect('supplier_search', 'supplier_dropdown')" class="w-full p-1.5 border rounded-lg bg-white cursor-pointer">
+                <input type="hidden" id="supplier" value="">
+                <div id="supplier_dropdown" class="hidden absolute left-0 right-0 top-full mt-1 bg-white border rounded-lg shadow-lg z-30 search-select-dropdown p-1 text-xs space-y-1"></div>
+              </div>
             </div>
           </div>
         </div>
@@ -97,15 +102,19 @@
           <div class="grid grid-cols-2 gap-2">
             <div>
               <label class="block font-semibold mb-0.5">국가 *</label>
-              <select id="country" onchange="onCountryChange(this)" class="w-full p-1.5 border rounded-lg bg-white">
-                <option value="">-- 선택 안함 --</option>
-              </select>
+              <div class="relative">
+                <input type="text" id="country_search" placeholder="국가 검색..." onclick="toggleSearchSelect('country_dropdown')" oninput="filterSearchSelect('country_search', 'country_dropdown')" class="w-full p-1.5 border rounded-lg bg-white cursor-pointer">
+                <input type="hidden" id="country" value="">
+                <div id="country_dropdown" class="hidden absolute left-0 right-0 top-full mt-1 bg-white border rounded-lg shadow-lg z-30 search-select-dropdown p-1 text-xs space-y-1"></div>
+              </div>
             </div>
             <div>
               <label class="block font-semibold mb-0.5">농장</label>
-              <select id="farm" onchange="onFarmChange(this)" class="w-full p-1.5 border rounded-lg bg-white">
-                <option value="">-- 선택 안함 --</option>
-              </select>
+              <div class="relative">
+                <input type="text" id="farm_search" placeholder="농장 검색..." onclick="toggleSearchSelect('farm_dropdown')" oninput="filterSearchSelect('farm_search', 'farm_dropdown')" class="w-full p-1.5 border rounded-lg bg-white cursor-pointer">
+                <input type="hidden" id="farm" value="">
+                <div id="farm_dropdown" class="hidden absolute left-0 right-0 top-full mt-1 bg-white border rounded-lg shadow-lg z-30 search-select-dropdown p-1 text-xs space-y-1"></div>
+              </div>
             </div>
           </div>
           <div>
@@ -115,9 +124,11 @@
           <div class="grid grid-cols-2 gap-2">
             <div>
               <label class="block font-semibold mb-0.5">생산자</label>
-              <select id="producer" onchange="checkCustomOption(this)" class="w-full p-1.5 border rounded-lg bg-white">
-                <option value="">-- 선택 안함 --</option>
-              </select>
+              <div class="relative">
+                <input type="text" id="producer_search" placeholder="생산자 검색..." onclick="toggleSearchSelect('producer_dropdown')" oninput="filterSearchSelect('producer_search', 'producer_dropdown')" class="w-full p-1.5 border rounded-lg bg-white cursor-pointer">
+                <input type="hidden" id="producer" value="">
+                <div id="producer_dropdown" class="hidden absolute left-0 right-0 top-full mt-1 bg-white border rounded-lg shadow-lg z-30 search-select-dropdown p-1 text-xs space-y-1"></div>
+              </div>
             </div>
             <div>
               <label class="block font-semibold mb-0.5">생산자 비고</label>
@@ -127,9 +138,11 @@
           <div class="grid grid-cols-2 gap-2">
             <div>
               <label class="block font-semibold mb-0.5">상위 지역</label>
-              <select id="regionUpper" onchange="checkCustomOption(this)" class="w-full p-1.5 border rounded-lg bg-white">
-                <option value="">-- 선택 안함 --</option>
-              </select>
+              <div class="relative">
+                <input type="text" id="regionUpper_search" placeholder="상위 지역..." onclick="toggleSearchSelect('regionUpper_dropdown')" oninput="filterSearchSelect('regionUpper_search', 'regionUpper_dropdown')" class="w-full p-1.5 border rounded-lg bg-white cursor-pointer">
+                <input type="hidden" id="regionUpper" value="">
+                <div id="regionUpper_dropdown" class="hidden absolute left-0 right-0 top-full mt-1 bg-white border rounded-lg shadow-lg z-30 search-select-dropdown p-1 text-xs space-y-1"></div>
+              </div>
             </div>
             <div>
               <label class="block font-semibold mb-0.5">하위 지역</label>
@@ -153,7 +166,7 @@
         </div>
       </div>
 
-      <!-- Group 3: 품종 정보 -->
+      <!-- Group 3: 품종 정보 (알파벳 구간별 태그 선택) -->
       <div class="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
         <button type="button" class="w-full px-4 py-2.5 bg-gray-50 flex justify-between font-bold text-xs border-b" onclick="toggleAcc(this)">
           <span>3. 품종 정보</span> <span class="arrow text-gray-400">▼</span>
@@ -167,20 +180,7 @@
             </div>
           </div>
 
-          <div>
-            <label class="block font-bold text-emerald-800 mb-1">🌿 Arabica 품종</label>
-            <div id="varietyContainerArabica" class="flex flex-wrap gap-1 p-1.5 border rounded bg-gray-50 min-h-[36px]"></div>
-          </div>
-
-          <div>
-            <label class="block font-bold text-amber-800 mb-1">🍂 Robusta 품종</label>
-            <div id="varietyContainerRobusta" class="flex flex-wrap gap-1 p-1.5 border rounded bg-gray-50 min-h-[36px]"></div>
-          </div>
-
-          <div>
-            <label class="block font-bold text-purple-800 mb-1">🍇 Other / Hybrid 품종</label>
-            <div id="varietyContainerOther" class="flex flex-wrap gap-1 p-1.5 border rounded bg-gray-50 min-h-[36px]"></div>
-          </div>
+          <div id="varietyGroupContainer" class="space-y-2 max-h-80 overflow-y-auto pr-1"></div>
         </div>
       </div>
 
@@ -191,23 +191,28 @@
         </button>
         <div class="accordion-content closed p-3 space-y-2.5 text-xs">
           <div>
-            <label class="block font-semibold mb-0.5 text-emerald-800">⚙ 프로세싱 세트 불러오기</label>
-            <select id="processSet" onchange="onProcessSetChange()" class="w-full p-1.5 border border-emerald-300 rounded-lg bg-emerald-50/50">
-              <option value="">-- 저장된 프로세싱 세트 선택 --</option>
-            </select>
+            <label class="block font-semibold mb-0.5 text-emerald-800">⚙ 프로세싱 세트 불러오기 (팝업)</label>
+            <button type="button" onclick="openProcessSetModal()" class="w-full p-2 border border-emerald-300 rounded-lg bg-emerald-50/60 text-emerald-900 font-bold text-left flex justify-between items-center">
+              <span id="selectedProcessSetText">-- 저장된 프로세싱 세트 선택 --</span>
+              <span>🔍</span>
+            </button>
+            <input type="hidden" id="processSet" value="">
           </div>
           <div class="grid grid-cols-2 gap-2">
             <div>
               <label class="block font-semibold mb-0.5">대분류</label>
-              <select id="processMain" onchange="checkCustomOption(this)" class="w-full p-1.5 border rounded-lg bg-white">
+              <select id="processMain" class="w-full p-1.5 border rounded-lg bg-white">
                 <option value="">-- 선택 안함 --</option>
+                <option value="Washed">Washed</option>
+                <option value="Natural">Natural</option>
+                <option value="Honey/PN">Honey/PN</option>
+                <option value="Semi Washed/White Honey">Semi Washed/White Honey</option>
               </select>
             </div>
             <div>
               <label class="block font-semibold mb-0.5">발효 타입</label>
               <select id="fermentationType" class="w-full p-1.5 border rounded-lg bg-white">
-                <option value="">-- 선택 안함 --</option>
-                <option value="Aerobic">Aerobic (유산소)</option>
+                <option value="Aerobic" selected>Aerobic (유산소, 기본)</option>
                 <option value="Anaerobic">Anaerobic (무산소)</option>
                 <option value="Complex">Complex (복합 발효)</option>
               </select>
@@ -324,12 +329,35 @@
         </div>
       </div>
 
-      <!-- Group 9: 생두 개별 실측 (1~20알) -->
+      <!-- Group 9: 생두 개별 실측 (1~20알) & 감각 검사 -->
       <div class="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
         <button type="button" class="w-full px-4 py-2.5 bg-emerald-100 text-emerald-900 flex justify-between font-bold text-xs border-b" onclick="toggleAcc(this)">
-          <span>9. 생두 개별 실측 (1~20알 치수/경도)</span> <span class="arrow text-gray-400">▲</span>
+          <span>9. 생두 개별 실측 (1~20알 치수/경도 및 감각)</span> <span class="arrow text-gray-400">▲</span>
         </button>
-        <div class="accordion-content p-3 space-y-2 text-xs">
+        <div class="accordion-content p-3 space-y-2.5 text-xs">
+          <!-- 감각 부피 / 감각 경도 신설 컨트롤러 -->
+          <div class="bg-amber-50 p-2.5 rounded-lg border border-amber-200 space-y-2">
+            <span class="font-bold text-amber-900 text-[11px] block">✋ 감각검사 단계 평가 (1~5 단계)</span>
+            <div class="grid grid-cols-2 gap-3">
+              <div class="flex items-center justify-between bg-white p-1.5 border rounded-lg">
+                <span class="font-bold text-gray-700 text-[11px]">#감각 부피</span>
+                <div class="flex items-center gap-1">
+                  <button type="button" onclick="stepSensory('sensoryVol', -1)" class="w-6 h-6 bg-gray-200 rounded font-bold text-xs">-</button>
+                  <input type="number" id="sensoryVol" value="3" min="1" max="5" class="w-8 text-center border rounded font-bold text-xs p-0.5">
+                  <button type="button" onclick="stepSensory('sensoryVol', 1)" class="w-6 h-6 bg-gray-200 rounded font-bold text-xs">+</button>
+                </div>
+              </div>
+              <div class="flex items-center justify-between bg-white p-1.5 border rounded-lg">
+                <span class="font-bold text-gray-700 text-[11px]">#감각 경도</span>
+                <div class="flex items-center gap-1">
+                  <button type="button" onclick="stepSensory('sensoryHardness', -1)" class="w-6 h-6 bg-gray-200 rounded font-bold text-xs">-</button>
+                  <input type="number" id="sensoryHardness" value="3" min="1" max="5" class="w-8 text-center border rounded font-bold text-xs p-0.5">
+                  <button type="button" onclick="stepSensory('sensoryHardness', 1)" class="w-6 h-6 bg-gray-200 rounded font-bold text-xs">+</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <div class="bg-emerald-50 p-2.5 rounded-lg border border-emerald-200 grid grid-cols-2 gap-x-2 gap-y-1 text-[11px]">
             <div>평균 부피: <span id="stat-vol-avg" class="font-bold text-emerald-800">0.0</span> mm³</div>
             <div>평균 표면적: <span id="stat-area-avg" class="font-bold text-emerald-800">0.0</span> mm²</div>
@@ -361,23 +389,25 @@
       </div>
       <div class="space-y-2">
         <div>
-          <label class="block font-bold mb-0.5">품종명 *</label>
-          <input type="text" id="newVarName" placeholder="예: Geisha" class="w-full p-2 border rounded-lg">
-        </div>
-        <div>
-          <label class="block font-bold mb-0.5">종 *</label>
-          <select id="newVarSpecies" class="w-full p-2 border rounded-lg bg-white">
+          <label class="block font-bold mb-0.5">1. 종 *</label>
+          <select id="newVarSpecies" onchange="onNewVarSpeciesChange()" class="w-full p-2 border rounded-lg bg-white">
             <option value="Arabica">Arabica</option>
             <option value="Robusta">Robusta</option>
             <option value="Other">Other</option>
           </select>
         </div>
         <div>
-          <label class="block font-bold mb-0.5">품종 그룹 *</label>
-          <input type="text" id="newVarGroup" placeholder="예: Ethiopia Hybrid" class="w-full p-2 border rounded-lg">
+          <label class="block font-bold mb-0.5">2. 품종 그룹 (종별 드롭다운) *</label>
+          <select id="newVarGroup" class="w-full p-2 border rounded-lg bg-white">
+            <option value="">-- 동적 로딩 중 --</option>
+          </select>
         </div>
         <div>
-          <label class="block font-bold mb-0.5">품종 비고 (선택)</label>
+          <label class="block font-bold mb-0.5">3. 품종명 *</label>
+          <input type="text" id="newVarName" placeholder="예: Geisha" class="w-full p-2 border rounded-lg">
+        </div>
+        <div>
+          <label class="block font-bold mb-0.5">4. 품종 비고 (선택)</label>
           <input type="text" id="newVarNotes" placeholder="설명 및 특성" class="w-full p-2 border rounded-lg">
         </div>
       </div>
@@ -385,6 +415,18 @@
         <button type="button" onclick="closeAddVarietyModal()" class="w-1/2 py-2 bg-gray-200 text-gray-700 font-bold rounded-lg">취소</button>
         <button type="button" onclick="saveNewVarietyToDB()" class="w-1/2 py-2 bg-emerald-600 text-white font-bold rounded-lg">DB 저장</button>
       </div>
+    </div>
+  </div>
+
+  <!-- 프로세싱 세트 불러오기 팝업 모달 -->
+  <div id="processSetModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-xl max-w-md w-full p-4 space-y-3 text-xs">
+      <div class="flex justify-between items-center border-b pb-2">
+        <h3 class="font-bold text-sm text-gray-800">⚙ 프로세싱 세트 불러오기</h3>
+        <button type="button" onclick="closeProcessSetModal()" class="text-gray-400 font-bold hover:text-gray-600">✕</button>
+      </div>
+      <input type="text" id="processSetSearch" oninput="filterProcessSetModalList()" placeholder="세트 키워드 검색..." class="w-full p-2 border rounded-lg">
+      <div id="processSetModalList" class="max-h-72 overflow-y-auto space-y-1.5 border p-2 rounded-lg bg-gray-50"></div>
     </div>
   </div>
 
@@ -402,14 +444,15 @@
         <label class="flex items-center gap-1 cursor-pointer"><input type="radio" name="beanScope" value="region" onchange="filterBeanModalList()" class="text-emerald-600"> 지역</label>
       </div>
       <input type="text" id="beanSearchInput" oninput="filterBeanModalList()" placeholder="검색어 입력..." class="w-full p-2 border rounded-lg">
-      <div id="beanModalList" class="max-h-60 overflow-y-auto space-y-1.5 border p-2 rounded-lg bg-gray-50"></div>
+      <div id="beanModalList" class="max-h-80 overflow-y-auto space-y-1.5 border p-2 rounded-lg bg-gray-50"></div>
     </div>
   </div>
 
   <script>
-    const GOOGLE_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxpBtsdrY2Jpyddz56WpQNVWiSTRmbVp41fAXFjxktEjOOQIanum-XPCucJdwbGaiE/exec";
+    const GOOGLE_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwSUUvO_62SmWHIdp38KSddhnForj5TIGNvJRbHqdnBPY4tC17ZjM_Gj011x339inM/exec";
     let activeDraftsList = [];
     let cachedBeansList = [];
+    let cachedProcessSets = [];
     let dbCache = {};
 
     let runsData = [ {} ];
@@ -424,11 +467,26 @@
       'rotronicAw', 'rotronicAwTemp', 'rotronicAwOffset', 'rotronicTempOffset'
     ];
 
+    // 품종 알파벳 구간별 매핑 데이터
+    const varietyRanges = [
+      { key: "Arabica 0-9", species: "Arabica", items: ["74110", "74112", "74114", "74120", "74158", "74165"] },
+      { key: "Arabica A-B", species: "Arabica", items: ["Abyssinia", "Abyssinia 7", "Abyssinia Geisha", "Acaia", "Aji", "Andungsari", "Arabica", "Aramosa", "Arara", "Arusha", "Arusi", "Ateng Super", "Batian", "Bourbon"] },
+      { key: "Arabica C-D", species: "Arabica", items: ["Castillo", "Catigua", "Catimor", "Catuai", "Catucai 785", "Caturra", "Cauvery", "Chandragiri", "Chico Gallo", "Chiroso", "Cobra", "Colombia", "Colombia F6", "Dega", "Diga"] },
+      { key: "Arabica E-J", species: "Arabica", items: ["Ethiopian Landrace", "F1 Centro Americano", "Geisha", "Geisha 2722", "Guarany", "H3", "Heirloom", "Icatu", "IH90", "Ihcafe-90", "Java"] },
+      { key: "Arabica K-O", species: "Arabica", items: ["Kent", "Kumie", "Kurume", "Laurina", "Lempira", "Maracaturra", "Marageisha", "Maragogype", "Marsellesa", "Mibirizi", "Milenio", "Moka", "Mundo Novo", "Obata", "Ombligon"] },
+      { key: "Arabica P-R", species: "Arabica", items: ["Pacamara", "Pacas", "Pache", "Papayo", "Parainema", "Paraiso", "Pink Bourbon", "Red Bourbon", "Red Catuai", "Red Pacamara", "Ruiru11"] },
+      { key: "Arabica S-T", species: "Arabica", items: ["S288", "S795", "San Ramon", "Sidra", "Sigararutang", "Siriema", "SL28", "SL34", "Sln.5B", "SLN9", "Starmaya", "Sudan Rume", "Tabi", "Tim Tim", "Topazio", "Typica", "Typica Mejorado"] },
+      { key: "Arabica U-Z", species: "Arabica", items: ["Udaini", "Villa Sarchi", "Wilsho", "Wolisho", "Wush Wush", "Yellow Bourbon", "Yellow Catuai", "Yellow Caturra", "Yellow Colombia", "Yellow Geisha", "Yemenia"] },
+      { key: "Robusta", species: "Robusta", items: ["CXR", "Kituza", "Perdenia", "Robusta", "Robusta Huni", "S274", "TR4"] },
+      { key: "Other", species: "Other", items: ["Eugenioides", "Excelsa"] }
+    ];
+
     window.addEventListener('DOMContentLoaded', () => {
       document.getElementById('measureDate').value = new Date().toISOString().substring(0, 10);
       extractYearMonth();
       build20BeanGrid();
       renderRunTabs();
+      renderVarietyGroupChips();
       if (!GOOGLE_WEB_APP_URL.includes("여기에_")) {
         loadDraftList();
         loadDBLists();
@@ -446,108 +504,174 @@
       }
     }
 
+    function stepSensory(id, delta) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      let val = parseInt(el.value, 10) || 3;
+      val += delta;
+      if (val < 1) val = 1;
+      if (val > 5) val = 5;
+      el.value = val;
+    }
+
     function loadDBLists() {
       fetch(`${GOOGLE_WEB_APP_URL}?action=getDB`)
         .then(res => res.json())
         .then(data => {
           dbCache = data || {};
-          fillSelectOptions('country', data.country, 0);
-          fillSelectOptions('supplier', data.supplier, 0);
-          fillSelectOptions('farm', data.farm, 1);
-          fillSelectOptions('regionUpper', data.region, 1);
-          fillSelectOptions('processSet', data.processing, 0);
-          fillSelectOptions('processMain', data.processing, 1);
+          populateSearchSelectData('supplier_dropdown', data.supplier, 0, 'supplier');
+          populateSearchSelectData('country_dropdown', data.country, 0, 'country', onCountryChange);
+          populateSearchSelectData('farm_dropdown', data.farm, 1, 'farm', onFarmChange);
+          populateSearchSelectData('regionUpper_dropdown', data.region, 1, 'regionUpper');
 
-          renderGroupedVarietyChips(data.variety);
           renderProcessSubChips(data.processing);
+          onNewVarSpeciesChange();
         }).catch(err => console.error(err));
     }
 
-    function fillSelectOptions(selectId, arr, colIdx, filterColIdx = -1, filterValue = "") {
-      const sel = document.getElementById(selectId);
-      if (!sel) return;
-      sel.innerHTML = '<option value="">-- 선택 안함 --</option>';
-      if (!arr || !Array.isArray(arr)) {
-        sel.innerHTML += `<option value="__custom__">✏ [+ 직접 입력]</option>`;
-        return;
-      }
+    // 검색 결합형 드롭다운 로직
+    function populateSearchSelectData(dropdownId, arr, colIdx, hiddenId, onSelectCallback = null) {
+      const dropdown = document.getElementById(dropdownId);
+      if (!dropdown) return;
+      dropdown.innerHTML = '';
+      if (!arr || !Array.isArray(arr)) return;
+
       const set = new Set();
       for (let i = 1; i < arr.length; i++) {
-        if (filterColIdx > -1 && filterValue) {
-          const matchVal = String(arr[i][filterColIdx] || '').trim().toLowerCase();
-          if (matchVal !== filterValue.toLowerCase()) continue;
-        }
         const val = String(arr[i][colIdx] || '').trim();
         if (val && !set.has(val)) {
           set.add(val);
-          sel.innerHTML += `<option value="${val}">${val}</option>`;
+          const item = document.createElement('div');
+          item.className = 'p-1.5 hover:bg-emerald-50 cursor-pointer rounded font-medium text-gray-700';
+          item.textContent = val;
+          item.onclick = function() {
+            document.getElementById(hiddenId + '_search').value = val;
+            document.getElementById(hiddenId).value = val;
+            toggleSearchSelect(dropdownId, false);
+            if (onSelectCallback) onSelectCallback(val);
+          };
+          dropdown.appendChild(item);
         }
       }
-      sel.innerHTML += `<option value="__custom__">✏ [+ 직접 입력]</option>`;
     }
 
-    function onCountryChange(sel) {
-      checkCustomOption(sel);
-      const cVal = sel.value.trim();
-      fillSelectOptions('farm', dbCache.farm, 1, 0, cVal);
-      fillSelectOptions('regionUpper', dbCache.region, 1, 0, cVal);
-      onFarmChange(document.getElementById('farm'));
-    }
-
-    function onFarmChange(sel) {
-      checkCustomOption(sel);
-      const fVal = sel.value.trim();
-      if (!fVal) {
-        const prodSel = document.getElementById('producer');
-        prodSel.innerHTML = '<option value="">-- 선택 안함 --</option><option value="__custom__">✏ [+ 직접 입력]</option>';
+    function toggleSearchSelect(dropdownId, forceState = null) {
+      const dropdown = document.getElementById(dropdownId);
+      if (!dropdown) return;
+      if (forceState !== null) {
+        if (forceState) dropdown.classList.remove('hidden');
+        else dropdown.classList.add('hidden');
       } else {
-        fillSelectOptions('producer', dbCache.farm, 3, 1, fVal);
+        dropdown.classList.toggle('hidden');
       }
     }
 
-    function checkCustomOption(sel) {
-      if (sel.value === '__custom__') {
-        const val = prompt("새로운 항목명을 입력해 주세요:");
-        if (val && val.trim()) {
-          const trimmed = val.trim();
-          const opt = document.createElement('option');
-          opt.value = trimmed;
-          opt.textContent = trimmed;
-          sel.insertBefore(opt, sel.lastElementChild);
-          sel.value = trimmed;
+    function filterSearchSelect(inputId, dropdownId) {
+      const q = document.getElementById(inputId).value.trim().toLowerCase();
+      const dropdown = document.getElementById(dropdownId);
+      toggleSearchSelect(dropdownId, true);
+
+      let matchCount = 0;
+      let lastMatchText = "";
+
+      Array.from(dropdown.children).forEach(child => {
+        const txt = child.textContent.trim().toLowerCase();
+        if (txt.includes(q)) {
+          child.classList.remove('hidden');
+          matchCount++;
+          lastMatchText = child.textContent.trim();
         } else {
-          sel.value = "";
+          child.classList.add('hidden');
+        }
+      });
+
+      // 단일 검색어로 완전 일치 시 자동 선택
+      if (matchCount === 1 && lastMatchText.toLowerCase() === q) {
+        document.getElementById(inputId).value = lastMatchText;
+        document.getElementById(inputId.replace('_search', '')).value = lastMatchText;
+        toggleSearchSelect(dropdownId, false);
+      }
+    }
+
+    function onCountryChange(cVal) {
+      if (!dbCache.farm) return;
+      populateFilteredFarmSelect(cVal);
+    }
+
+    function populateFilteredFarmSelect(cVal) {
+      const dropdown = document.getElementById('farm_dropdown');
+      dropdown.innerHTML = '';
+      if (!dbCache.farm) return;
+
+      for (let i = 1; i < dbCache.farm.length; i++) {
+        const country = String(dbCache.farm[i][0] || '').trim().toLowerCase();
+        const farmName = String(dbCache.farm[i][1] || '').trim();
+        const producer = String(dbCache.farm[i][3] || '').trim();
+
+        if (country === cVal.toLowerCase() && farmName) {
+          const item = document.createElement('div');
+          item.className = 'p-1.5 hover:bg-emerald-50 cursor-pointer rounded font-medium text-gray-700 flex justify-between';
+          item.innerHTML = `<span>${farmName}</span> <span class="text-[10px] text-gray-400">${producer}</span>`;
+          item.onclick = function() {
+            document.getElementById('farm_search').value = farmName;
+            document.getElementById('farm').value = farmName;
+            toggleSearchSelect('farm_dropdown', false);
+            onFarmChange(farmName);
+          };
+          dropdown.appendChild(item);
         }
       }
     }
 
-    function renderGroupedVarietyChips(arr) {
-      const cArabica = document.getElementById('varietyContainerArabica');
-      const cRobusta = document.getElementById('varietyContainerRobusta');
-      const cOther = document.getElementById('varietyContainerOther');
-      
-      cArabica.innerHTML = ''; cRobusta.innerHTML = ''; cOther.innerHTML = '';
-      if (!arr || !Array.isArray(arr)) return;
+    function onFarmChange(fVal) {
+      const prodDropdown = document.getElementById('producer_dropdown');
+      prodDropdown.innerHTML = '';
+      if (!dbCache.farm || !fVal) return;
 
-      for (let i = 1; i < arr.length; i++) {
-        const row = arr[i];
-        if (!row || !Array.isArray(row)) continue;
-        const name = String(row[0] || '').trim();
-        const species = String(row[1] || '').trim().toLowerCase();
-        if (!name) continue;
+      for (let i = 1; i < dbCache.farm.length; i++) {
+        const farmName = String(dbCache.farm[i][1] || '').trim().toLowerCase();
+        const producer = String(dbCache.farm[i][3] || '').trim();
 
-        let targetContainer = cOther;
-        if (species === 'arabica') targetContainer = cArabica;
-        else if (species === 'robusta') targetContainer = cRobusta;
-
-        createVarietyChipElement(name, targetContainer);
+        if (farmName === fVal.toLowerCase() && producer) {
+          const item = document.createElement('div');
+          item.className = 'p-1.5 hover:bg-emerald-50 cursor-pointer rounded font-medium text-gray-700';
+          item.textContent = producer;
+          item.onclick = function() {
+            document.getElementById('producer_search').value = producer;
+            document.getElementById('producer').value = producer;
+            toggleSearchSelect('producer_dropdown', false);
+          };
+          prodDropdown.appendChild(item);
+        }
       }
+    }
+
+    // 품종 알파벳 구간별 렌더링
+    function renderVarietyGroupChips() {
+      const container = document.getElementById('varietyGroupContainer');
+      container.innerHTML = '';
+
+      varietyRanges.forEach(group => {
+        const section = document.createElement('div');
+        section.className = 'space-y-1 border-b pb-2';
+        section.innerHTML = `
+          <label class="block font-bold text-gray-700 text-[11px] mb-0.5">🏷 ${group.key}</label>
+          <div class="flex flex-wrap gap-1 p-1 bg-gray-50 rounded border"></div>
+        `;
+        const chipBox = section.querySelector('div');
+
+        group.items.forEach(vName => {
+          createVarietyChipElement(vName, chipBox);
+        });
+
+        container.appendChild(section);
+      });
     }
 
     function createVarietyChipElement(val, container) {
       const btn = document.createElement('button');
       btn.type = 'button';
-      btn.className = 'variety-chip px-2 py-1 border rounded-lg text-[11px] bg-gray-100 text-gray-700 font-medium transition-all';
+      btn.className = 'variety-chip px-2 py-1 border rounded-lg text-[11px] bg-white text-gray-700 font-medium hover:bg-emerald-50 transition-all';
       btn.dataset.val = val;
       btn.textContent = val;
       btn.onclick = function() { toggleVarietyChipQueue(this); };
@@ -582,10 +706,6 @@
       list.forEach(val => {
         if (!val) return;
         let btn = document.querySelector(`.variety-chip[data-val="${val}"]`);
-        if (!btn) {
-          createVarietyChipElement(val, document.getElementById('varietyContainerOther'));
-          btn = document.getElementById('varietyContainerOther').lastElementChild;
-        }
         if (btn && !selectedVarietyQueue.includes(val)) {
           selectedVarietyQueue.push(val);
           btn.classList.add('active-chip');
@@ -600,10 +720,33 @@
       document.getElementById('varietyModal').classList.add('hidden');
     }
 
+    // 종 선택 시 품종 그룹 동적 로딩
+    function onNewVarSpeciesChange() {
+      const species = document.getElementById('newVarSpecies').value.trim().toLowerCase();
+      const groupSel = document.getElementById('newVarGroup');
+      groupSel.innerHTML = '';
+
+      if (!dbCache.variety) return;
+      const set = new Set();
+
+      for (let i = 1; i < dbCache.variety.length; i++) {
+        const rowSpecies = String(dbCache.variety[i][1] || '').trim().toLowerCase();
+        const rowGroup = String(dbCache.variety[i][2] || '').trim();
+
+        if (rowSpecies === species && rowGroup && !set.has(rowGroup)) {
+          set.add(rowGroup);
+          groupSel.innerHTML += `<option value="${rowGroup}">${rowGroup}</option>`;
+        }
+      }
+      if (set.size === 0) {
+        groupSel.innerHTML = `<option value="Ethiopia">Ethiopia</option><option value="Typica/Bourbon">Typica/Bourbon</option><option value="Hybrid">Hybrid</option><option value="Unknown">Unknown</option>`;
+      }
+    }
+
     function saveNewVarietyToDB() {
       const name = document.getElementById('newVarName').value.trim();
       const species = document.getElementById('newVarSpecies').value;
-      const group = document.getElementById('newVarGroup').value.trim();
+      const group = document.getElementById('newVarGroup').value;
       const notes = document.getElementById('newVarNotes').value.trim();
 
       if (!name) {
@@ -629,6 +772,63 @@
       });
     }
 
+    // 프로세싱 세트 불러오기 팝업 모달
+    function openProcessSetModal() {
+      document.getElementById('processSetModal').classList.remove('hidden');
+      if (cachedProcessSets.length === 0) {
+        fetch(`${GOOGLE_WEB_APP_URL}?action=getProcessSets`)
+          .then(res => res.json())
+          .then(data => {
+            cachedProcessSets = data || [];
+            filterProcessSetModalList();
+          });
+      } else {
+        filterProcessSetModalList();
+      }
+    }
+
+    function closeProcessSetModal() {
+      document.getElementById('processSetModal').classList.add('hidden');
+    }
+
+    function filterProcessSetModalList() {
+      const q = document.getElementById('processSetSearch').value.trim().toLowerCase();
+      const filtered = cachedProcessSets.filter(s => {
+        return s.setName.toLowerCase().includes(q) || s.notes.toLowerCase().includes(q);
+      });
+      renderProcessSetModalList(filtered);
+    }
+
+    function renderProcessSetModalList(list) {
+      const container = document.getElementById('processSetModalList');
+      container.innerHTML = '';
+      if (!list || list.length === 0) {
+        container.innerHTML = `<div class="text-center py-4 text-gray-400">등록된 프로세싱 세트가 없습니다.</div>`;
+        return;
+      }
+
+      list.forEach((s, idx) => {
+        container.innerHTML += `
+          <div onclick="selectProcessSetFromModal(${idx})" class="p-2 bg-white rounded border hover:bg-emerald-50 cursor-pointer space-y-0.5">
+            <div class="font-bold text-gray-800 text-xs">${s.mainCat} | ${s.subCat} | ${s.fermType}</div>
+            <div class="text-[10px] text-gray-500 line-clamp-2">${s.notes || '비고 없음'}</div>
+          </div>
+        `;
+      });
+    }
+
+    function selectProcessSetFromModal(idx) {
+      const s = cachedProcessSets[idx];
+      if (!s) return;
+      document.getElementById('processMain').value = s.mainCat || "";
+      setSelectedProcessSub(s.subCat || "");
+      document.getElementById('fermentationType').value = s.fermType || "Aerobic";
+      document.getElementById('processNotes').value = s.notes || "";
+      document.getElementById('selectedProcessSetText').textContent = s.setName;
+      document.getElementById('processSet').value = s.setName;
+      closeProcessSetModal();
+    }
+
     function renderProcessSubChips(arr) {
       const container = document.getElementById('subChipContainer');
       if (!container || !arr || !Array.isArray(arr)) return;
@@ -636,10 +836,10 @@
       const set = new Set();
       
       for (let i = 1; i < arr.length; i++) {
-        const subVal = String(arr[i][0] || '').trim();
+        const subVal = String(arr[i][1] || '').trim();
         if (subVal && !set.has(subVal)) {
           set.add(subVal);
-          createChipElement(subVal, container);
+          createSubChipElement(subVal, container);
         }
       }
 
@@ -647,12 +847,12 @@
       defaultSubs.forEach(s => {
         if (!set.has(s)) {
           set.add(s);
-          createChipElement(s, container);
+          createSubChipElement(s, container);
         }
       });
     }
 
-    function createChipElement(val, container) {
+    function createSubChipElement(val, container) {
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'sub-chip px-2 py-1 border rounded-lg text-[11px] bg-gray-100 text-gray-700 font-medium transition-all';
@@ -678,7 +878,7 @@
       const val = document.getElementById('customSubInput').value.trim();
       if (!val) return;
       const container = document.getElementById('subChipContainer');
-      createChipElement(val, container);
+      createSubChipElement(val, container);
       const newBtn = container.lastElementChild;
       toggleSubChipQueue(newBtn);
       document.getElementById('customSubInput').value = '';
@@ -702,7 +902,7 @@
         let btn = document.querySelector(`.sub-chip[data-val="${val}"]`);
         if (!btn) {
           const container = document.getElementById('subChipContainer');
-          createChipElement(val, container);
+          createSubChipElement(val, container);
           btn = container.lastElementChild;
         }
         if (btn && !selectedSubQueue.includes(val)) {
@@ -710,43 +910,6 @@
           btn.classList.add('active-chip');
         }
       });
-    }
-
-    function setSelectValue(id, val) {
-      const sel = document.getElementById(id);
-      if (!sel) return;
-      let match = false;
-      for (let i = 0; i < sel.options.length; i++) {
-        if (sel.options[i].value.toLowerCase() === String(val).toLowerCase()) {
-          sel.selectedIndex = i;
-          match = true;
-          break;
-        }
-      }
-      if (!match && val) {
-        const opt = document.createElement('option');
-        opt.value = val;
-        opt.textContent = val;
-        sel.insertBefore(opt, sel.lastElementChild);
-        sel.value = val;
-      }
-    }
-
-    function onProcessSetChange() {
-      const sel = document.getElementById('processSet');
-      const selected = sel.value.trim();
-      if (!selected || !dbCache.processing) return;
-
-      for (let i = 1; i < dbCache.processing.length; i++) {
-        const row = dbCache.processing[i];
-        if (String(row[0] || '').trim().toLowerCase() === selected.toLowerCase()) {
-          setSelectValue('processMain', row[1] || '');
-          setSelectedProcessSub(row[2] || '');
-          document.getElementById('fermentationType').value = row[3] || '';
-          document.getElementById('processNotes').value = row[4] || '';
-          break;
-        }
-      }
     }
 
     function renderRunTabs() {
@@ -904,7 +1067,7 @@
 
       if (statusMode === 'Completed' && !confirm(`🚀 총 ${runsData.length}개 회차 데이터를 전송하시겠습니까?`)) return;
 
-      const rowId = document.getElementById('currentRowId').value || "ID_" + Date.now();
+      const setId = document.getElementById('currentSetId').value || "SET_" + Date.now();
       const parseVal = v => {
         if (v === undefined || v === null) return "";
         const str = String(v).trim();
@@ -936,7 +1099,9 @@
         "프로세싱 대분류": document.getElementById('processMain').value,
         "프로세싱 소분류": getSelectedProcessSub(),
         "발효 타입": document.getElementById('fermentationType').value,
-        "프로세싱 비고": document.getElementById('processNotes').value
+        "프로세싱 비고": document.getElementById('processNotes').value,
+        "감각 부피": parseVal(document.getElementById('sensoryVol').value),
+        "감각 경도": parseVal(document.getElementById('sensoryHardness').value)
       };
 
       for (let i = 1; i <= 20; i++) {
@@ -980,7 +1145,7 @@
       fetch(GOOGLE_WEB_APP_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({ formType: "measure", rowId: rowId, status: statusMode, runs: runsPayload })
+        body: JSON.stringify({ formType: "measure", setId: setId, status: statusMode, runs: runsPayload })
       })
       .then(res => res.text())
       .then(text => {
@@ -1005,45 +1170,54 @@
           activeDraftsList.forEach(item => {
             const name = item.fields["커피 이름"] || "이름 없음";
             const date = item.fields["측정일자"] || "";
-            select.innerHTML += `<option value="${item.rowId}">${name} (${String(date).substring(0,10)})</option>`;
+            select.innerHTML += `<option value="${item.setId}">${name} (${String(date).substring(0,10)})</option>`;
           });
         });
     }
 
-    function loadSelectedDraft(rowId) {
-      if (!rowId) return;
-      const match = activeDraftsList.find(d => d.rowId == rowId);
+    function loadSelectedDraft(setId) {
+      if (!setId) return;
+      const match = activeDraftsList.find(d => d.setId == setId);
       if (!match) return;
       const f = match.fields;
-      document.getElementById('currentRowId').value = rowId;
+      document.getElementById('currentSetId').value = setId;
       document.getElementById('coffeeName').value = f["커피 이름"] || "";
       document.getElementById('measureDate').value = f["측정일자"] ? String(f["측정일자"]).substring(0, 10) : "";
       extractYearMonth();
       document.getElementById('harvestYear').value = f["수확연도"] || "";
       document.getElementById('measurePurpose').value = f["측정목적"] || "";
       
-      setSelectValue('supplier', f["공급사"] || "");
-      setSelectValue('country', f["국가"] || "");
-      onCountryChange(document.getElementById('country'));
+      document.getElementById('supplier').value = f["공급사"] || "";
+      document.getElementById('supplier_search').value = f["공급사"] || "";
 
-      setSelectValue('farm', f["농장"] || "");
-      onFarmChange(document.getElementById('farm'));
+      document.getElementById('country').value = f["국가"] || "";
+      document.getElementById('country_search').value = f["국가"] || "";
 
+      document.getElementById('farm').value = f["농장"] || "";
+      document.getElementById('farm_search').value = f["농장"] || "";
       document.getElementById('farmNotes').value = f["농장 비고"] || "";
-      setSelectValue('producer', f["생산자"] || "");
+
+      document.getElementById('producer').value = f["생산자"] || "";
+      document.getElementById('producer_search').value = f["생산자"] || "";
       document.getElementById('producerNotes').value = f["생산자 비고"] || "";
-      setSelectValue('regionUpper', f["상위 지역"] || "");
+
+      document.getElementById('regionUpper').value = f["상위 지역"] || "";
+      document.getElementById('regionUpper_search').value = f["상위 지역"] || "";
       document.getElementById('regionLower').value = f["하위 지역"] || "";
       document.getElementById('regionNotes').value = f["지역 비고"] || "";
+
       document.getElementById('altMin').value = f["재배고도 범위 최저"] || "";
       document.getElementById('altMax').value = f["재배고도 범위 최고"] || "";
 
       setSelectedVariety(f["품종"] || "");
 
-      setSelectValue('processMain', f["프로세싱 대분류"] || "");
+      document.getElementById('processMain').value = f["프로세싱 대분류"] || "";
       setSelectedProcessSub(f["프로세싱 소분류"] || "");
-      document.getElementById('fermentationType').value = f["발효 타입"] || "";
+      document.getElementById('fermentationType').value = f["발효 타입"] || "Aerobic";
       document.getElementById('processNotes').value = f["프로세싱 비고"] || "";
+
+      document.getElementById('sensoryVol').value = f["감각 부피"] || 3;
+      document.getElementById('sensoryHardness').value = f["감각 경도"] || 3;
 
       for (let i = 1; i <= 20; i++) {
         document.getElementById(`b_${i}_l`).value = f[`실측 생두${i} 길이`] || "";
@@ -1095,17 +1269,17 @@
       list.forEach((b, idx) => {
         let labelText = "";
         if (scope === 'all') {
-          labelText = `${b["커피 이름"] || "이름 없음"} (${b["수확연도"] || "수확연도 미입력"})`;
+          labelText = `${b["국가"] || ""} | ${b["농장"] || ""} | ${b["생산자"] || ""} | ${b["상위 지역"] || ""} | ${b["하위 지역"] || ""} | ${b["품종_표시"] || ""} | ${b["프로세싱 소분류"] || ""}`;
         } else if (scope === 'farm') {
-          labelText = `${b["국가"] || ""} | ${b["농장"] || "농장 미입력"} | ${b["생산자"] || "생산자 미입력"}`;
+          labelText = `${b["국가"] || ""} | ${b["농장"] || "농장 미입력"} | ${b["생산자"] || "생산자 미입력"} | ${b["상위 지역"] || ""} | ${b["하위 지역"] || ""}`;
         } else if (scope === 'region') {
           labelText = `${b["국가"] || ""} | ${b["상위 지역"] || "상위지역 미입력"} | ${b["하위 지역"] || ""}`;
         }
 
         container.innerHTML += `
-          <div onclick="selectBeanFromModal(${idx})" class="p-2 bg-white rounded border hover:bg-emerald-50 cursor-pointer flex justify-between items-center">
-            <span class="font-bold text-gray-800">${labelText}</span>
-            <button type="button" class="px-2 py-1 bg-emerald-600 text-white rounded text-[10px] font-bold">선택</button>
+          <div onclick="selectBeanFromModal(${idx})" class="p-2 bg-white rounded border hover:bg-emerald-50 cursor-pointer flex justify-between items-center text-xs">
+            <span class="font-bold text-gray-800 break-words">${labelText}</span>
+            <button type="button" class="px-2 py-1 bg-emerald-600 text-white rounded text-[10px] font-bold flex-shrink-0">선택</button>
           </div>
         `;
       });
@@ -1117,36 +1291,43 @@
       const scope = document.querySelector('input[name="beanScope"]:checked').value;
 
       if (scope === 'all' || scope === 'farm' || scope === 'region') {
-        setSelectValue('country', b["국가"] || "");
-        onCountryChange(document.getElementById('country'));
-        setSelectValue('regionUpper', b["상위 지역"] || "");
+        document.getElementById('country').value = b["국가"] || "";
+        document.getElementById('country_search').value = b["국가"] || "";
+        document.getElementById('regionUpper').value = b["상위 지역"] || "";
+        document.getElementById('regionUpper_search').value = b["상위 지역"] || "";
         document.getElementById('regionLower').value = b["하위 지역"] || "";
         document.getElementById('regionNotes').value = b["지역 비고"] || "";
       }
 
       if (scope === 'all' || scope === 'farm') {
-        setSelectValue('farm', b["농장"] || "");
-        onFarmChange(document.getElementById('farm'));
+        document.getElementById('farm').value = b["농장"] || "";
+        document.getElementById('farm_search').value = b["농장"] || "";
         document.getElementById('farmNotes').value = b["농장 비고"] || "";
-        setSelectValue('producer', b["생산자"] || "");
+        document.getElementById('producer').value = b["생산자"] || "";
+        document.getElementById('producer_search').value = b["생산자"] || "";
         document.getElementById('producerNotes').value = b["생산자 비고"] || "";
       }
 
       if (scope === 'all') {
         document.getElementById('coffeeName').value = b["커피 이름"] || "";
         document.getElementById('harvestYear').value = b["수확연도"] || "";
-        setSelectValue('supplier', b["공급사"] || "");
+        document.getElementById('supplier').value = b["공급사"] || "";
+        document.getElementById('supplier_search').value = b["공급사"] || "";
+
         setSelectedVariety(b["품종"] || "");
-        setSelectValue('processMain', b["프로세싱 대분류"] || "");
+        document.getElementById('processMain').value = b["프로세싱 대분류"] || "";
         setSelectedProcessSub(b["프로세싱 소분류"] || "");
-        document.getElementById('fermentationType').value = b["발효 타입"] || "";
+        document.getElementById('fermentationType').value = b["발효 타입"] || "Aerobic";
         document.getElementById('processNotes').value = b["프로세싱 비고"] || "";
         document.getElementById('altMin').value = b["재배고도 범위 최저"] || "";
         document.getElementById('altMax').value = b["재배고도 범위 최고"] || "";
       }
 
+      // 불러오기 후 정보가 변경되는지 판단하기 위해 currentSetId 비우기 (신규 세트 부여 유도)
+      document.getElementById('currentSetId').value = "";
+
       closeBeanModal();
-      alert("✅ 선택한 생두 정보가 자동 입력되었습니다.");
+      alert("✅ 선택한 정보가 자동 입력되었습니다. (기존 생두 정보와 일치하는 경우 동일 생두 고유 ID로 발급됩니다.)");
     }
   </script>
 </body>
