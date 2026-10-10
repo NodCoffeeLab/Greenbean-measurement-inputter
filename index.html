@@ -245,6 +245,19 @@
         </div>
       </div>
 
+      
+      <!-- 🔄 반복 측정 회차 탭 컨트롤러 -->
+      <div class="bg-emerald-900 text-white p-3 rounded-xl space-y-2 shadow-md mb-3">
+        <div class="flex justify-between items-center">
+          <span class="font-bold text-xs">🔄 기기 측정 반복 회차 관리</span>
+          <div class="flex gap-1">
+            <button type="button" onclick="addRunTab()" class="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 rounded-lg text-[11px] font-bold">+ 회차 추가</button>
+            <button type="button" onclick="removeRunTab()" class="px-2 py-1 bg-red-600 hover:bg-red-500 rounded-lg text-[11px] font-bold">삭제</button>
+          </div>
+        </div>
+        <div id="runTabsHeader" class="flex gap-1.5 overflow-x-auto pb-1"></div>
+      </div>
+
       <!-- Group 5: 측정 데이터 (장비 & 실측 데이터) -->
       <div class="bg-white rounded-xl border border-gray-200 shadow-sm">
         <button type="button" class="w-full px-4 py-2.5 bg-emerald-700 text-white flex justify-between font-bold text-xs rounded-t-xl" onclick="toggleAcc(this)">
@@ -512,7 +525,85 @@
     let selectedSubQueue = [];
     let selectedVarietyQueue = [];
 
-    window.addEventListener('DOMContentLoaded', () => {
+    
+    // 반복 측정 회차 상태 관리
+    let runsData = [{}];
+    let currentRunIdx = 0;
+
+    const deviceFieldIds = [
+      'omixMoisture', 'omixDensity', 'omixEstDensity', 'omixScreenMin', 'omixScreenMax', 'omixEstVol', 'omixAw', 'omixBeanTemp',
+      'm1Moisture', 'm1Density', 'm1AirTemp',
+      'md500Moisture', 'md500Density', 'md500AirTemp',
+      'rotronicAw', 'rotronicAwTemp'
+    ];
+
+    function renderRunTabs() {
+      const container = document.getElementById('runTabsHeader');
+      if (!container) return;
+      container.innerHTML = '';
+      runsData.forEach((_, idx) => {
+        const isCurrent = idx === currentRunIdx;
+        const activeClass = isCurrent ? 'bg-emerald-400 text-emerald-950 font-bold border-white' : 'bg-emerald-800 text-emerald-200 border-emerald-700';
+        container.innerHTML += `
+          <button type="button" onclick="switchRunTab(${idx})" class="px-3 py-1 rounded-lg text-xs border ${activeClass}">
+            #${idx + 1}차 측정
+          </button>
+        `;
+      });
+      updateRunLabels();
+    }
+
+    function updateRunLabels() {
+      const labelText = `(#${currentRunIdx + 1}차)`;
+      const el = document.getElementById('label-omix');
+      if (el) el.textContent = `5. Omix 측정 데이터 ${labelText}`;
+    }
+
+    function saveCurrentRunInputs() {
+      const currentObj = {};
+      deviceFieldIds.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) currentObj[id] = el.value;
+      });
+      runsData[currentRunIdx] = currentObj;
+    }
+
+    function loadRunInputs(idx) {
+      const dataObj = runsData[idx] || {};
+      deviceFieldIds.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = dataObj[id] !== undefined ? dataObj[id] : '';
+      });
+    }
+
+    function addRunTab() {
+      saveCurrentRunInputs();
+      runsData.push({});
+      currentRunIdx = runsData.length - 1;
+      renderRunTabs();
+      loadRunInputs(currentRunIdx);
+    }
+
+    function removeRunTab() {
+      if (runsData.length <= 1) {
+        alert("최소 1개 회차는 유지되어야 합니다.");
+        return;
+      }
+      runsData.splice(currentRunIdx, 1);
+      currentRunIdx = Math.max(0, currentRunIdx - 1);
+      renderRunTabs();
+      loadRunInputs(currentRunIdx);
+    }
+
+    function switchRunTab(targetIdx) {
+      saveCurrentRunInputs();
+      currentRunIdx = targetIdx;
+      renderRunTabs();
+      loadRunInputs(targetIdx);
+    }
+
+
+window.addEventListener('DOMContentLoaded', () => {
       document.getElementById('measureDate').value = new Date().toISOString().substring(0, 10);
       extractYearMonth();
       build20BeanGrid();
@@ -1058,6 +1149,7 @@
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify({
+          runs: runs,
           action: "addVariety",
           varietyData: { name: name, species: species, group: group, notes: notes }
         })
