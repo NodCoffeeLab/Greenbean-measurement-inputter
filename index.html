@@ -531,7 +531,7 @@
     let currentRunIdx = 0;
 
     const deviceFieldIds = [
-      'omixMoisture', 'omixDensity', 'omixEstDensity', 'omixScreenMin', 'omixScreenMax', 'omixEstVol', 'omixAw', 'omixBeanTemp',
+      'omixMoisture', 'omixDensity', 'omixEstDensity', 'omixScreenSmall', 'omixScreenLarge', 'omixEstVolume', 'omixAw', 'omixBeanTemp',
       'm1Moisture', 'm1Density', 'm1AirTemp',
       'md500Moisture', 'md500Density', 'md500AirTemp',
       'rotronicAw', 'rotronicAwTemp'
@@ -1393,13 +1393,44 @@ window.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
+      // 현재 활성화된 차수 입력값 백업
+      saveCurrentRunInputs();
+
+      const commonFields = gatherFormData();
+
+      // 전체 회차(runsData) 데이터를 백엔드 연동 형주로 매핑
+      const runsPayload = runsData.map((runObj) => {
+        const runFields = Object.assign({}, commonFields);
+
+        runFields["Omix 수분"] = runObj['omixMoisture'] !== undefined ? runObj['omixMoisture'] : "";
+        runFields["Omix 밀도"] = runObj['omixDensity'] !== undefined ? runObj['omixDensity'] : "";
+        runFields["Omix 추정 밀도"] = runObj['omixEstDensity'] !== undefined ? runObj['omixEstDensity'] : "";
+        runFields["Omix 스크린 사이즈 작음"] = runObj['omixScreenSmall'] !== undefined ? runObj['omixScreenSmall'] : "";
+        runFields["Omix 스크린 사이즈 큼"] = runObj['omixScreenLarge'] !== undefined ? runObj['omixScreenLarge'] : "";
+        runFields["Omix 추정 부피"] = runObj['omixEstVolume'] !== undefined ? runObj['omixEstVolume'] : "";
+        runFields["Omix 수분활성도"] = runObj['omixAw'] !== undefined ? runObj['omixAw'] : "";
+        runFields["Omix 빈 온도"] = runObj['omixBeanTemp'] !== undefined ? runObj['omixBeanTemp'] : "";
+
+        runFields["M1 수분"] = runObj['m1Moisture'] !== undefined ? runObj['m1Moisture'] : "";
+        runFields["M1 밀도"] = runObj['m1Density'] !== undefined ? runObj['m1Density'] : "";
+        runFields["M1 공기 온도"] = runObj['m1AirTemp'] !== undefined ? runObj['m1AirTemp'] : "";
+
+        runFields["MD-500 수분"] = runObj['md500Moisture'] !== undefined ? runObj['md500Moisture'] : "";
+        runFields["MD-500 밀도"] = runObj['md500Density'] !== undefined ? runObj['md500Density'] : "";
+        runFields["MD-500 공기 온도"] = runObj['md500AirTemp'] !== undefined ? runObj['md500AirTemp'] : "";
+
+        runFields["Rotronic 수분활성도"] = runObj['rotronicAw'] !== undefined ? runObj['rotronicAw'] : "";
+        runFields["Rotronic 수분활성도 온도"] = runObj['rotronicAwTemp'] !== undefined ? runObj['rotronicAwTemp'] : "";
+
+        return runFields;
+      });
+
       const currentSetId = document.getElementById('currentSetId').value || ("SET_" + Date.now());
-      const fields = gatherFormData();
 
       const payload = {
         status: statusMode,
         setId: currentSetId,
-        runs: [fields]
+        runs: runsPayload
       };
 
       fetch(GOOGLE_WEB_APP_URL, {
@@ -1434,6 +1465,11 @@ window.addEventListener('DOMContentLoaded', () => {
       document.getElementById('measureDate').value = new Date().toISOString().substring(0, 10);
       extractYearMonth();
       loadEnvData();
+
+      runsData = [{}];
+      currentRunIdx = 0;
+      renderRunTabs();
+      loadRunInputs(0);
     }
 
     // 임시저장 목록 로딩
@@ -1537,6 +1573,30 @@ window.addEventListener('DOMContentLoaded', () => {
       document.getElementById('rotronicAwTemp').value = f["Rotronic 수분활성도 온도"] || "";
       document.getElementById('rotronicAwOffset').value = f["Rotronic 수분활성도 오프셋"] || "";
       document.getElementById('rotronicTempOffset').value = f["Rotronic 오프셋 온도"] || "";
+
+      // 회차 버퍼 초기화 및 1차 데이터 세팅
+      runsData = [{}];
+      currentRunIdx = 0;
+      runsData[0] = {
+        omixMoisture: f["Omix 수분"] || "",
+        omixDensity: f["Omix 밀도"] || "",
+        omixEstDensity: f["Omix 추정 밀도"] || "",
+        omixScreenSmall: f["Omix 스크린 사이즈 작음"] || "",
+        omixScreenLarge: f["Omix 스크린 사이즈 큼"] || "",
+        omixEstVolume: f["Omix 추정 부피"] || "",
+        omixAw: f["Omix 수분활성도"] || "",
+        omixBeanTemp: f["Omix 빈 온도"] || "",
+        m1Moisture: f["M1 수분"] || "",
+        m1Density: f["M1 밀도"] || "",
+        m1AirTemp: f["M1 공기 온도"] || "",
+        md500Moisture: f["MD-500 수분"] || "",
+        md500Density: f["MD-500 밀도"] || "",
+        md500AirTemp: f["MD-500 공기 온도"] || "",
+        rotronicAw: f["Rotronic 수분활성도"] || "",
+        rotronicAwTemp: f["Rotronic 수분활성도 온도"] || ""
+      };
+      renderRunTabs();
+      loadRunInputs(0);
 
       document.getElementById('sensoryVolume').value = f["감각 부피"] || 3;
       document.getElementById('sensoryHardness').value = f["감각 경도"] || 3;
